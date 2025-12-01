@@ -1,6 +1,7 @@
 import React, { useState } from "react";
 import { Link, useNavigate } from "react-router-dom";
 import staticUsers from "../users.json";
+import AnimatedBackground from "../components/AnimatedBackground";
 
 export default function SignUpPage() {
   const [email, setEmail] = useState("");
@@ -24,6 +25,7 @@ export default function SignUpPage() {
       setMessage("Account already exists with that email.");
       return;
     }
+
     const newUser = { email, password };
     localUsers.push(newUser);
 
@@ -37,29 +39,49 @@ export default function SignUpPage() {
   };
 
   return (
-    <div className="login-page">
-      <h1>Create Account</h1>
-      <form onSubmit={handleSignUp}>
-        <input
-          type="email"
-          placeholder="Email"
-          value={email}
-          onChange={(e) => setEmail(e.target.value)}
-          required
-        />
-        <input
-          type="password"
-          placeholder="Password"
-          value={password}
-          onChange={(e) => setPassword(e.target.value)}
-          required
-        />
-        <button type="submit">Sign Up</button>
-      </form>
-      {message && <p style={{ marginTop: '10px', color: message.includes('successfully') ? 'green' : 'red' }}>{message}</p>}
-      <p style={{ marginTop: '20px' }}>
-        Already have an account? <Link to="/login">Log In</Link>
-      </p>
-    </div>
+    <>
+      {/* ⭐ Space background with moving ships & lasers */}
+      <AnimatedBackground />
+
+      {/* ⭐ Your original content stays untouched */}
+      <div className="login-page" style={{ position: "relative", zIndex: 10 }}>
+        <h1>Create Account</h1>
+
+        <form onSubmit={handleSignUp}>
+          <input
+            type="email"
+            placeholder="Email"
+            value={email}
+            onChange={(e) => setEmail(e.target.value)}
+            required
+          />
+
+          <input
+            type="password"
+            placeholder="Password"
+            value={password}
+            onChange={(e) => setPassword(e.target.value)}
+            required
+          />
+
+          <button type="submit">Sign Up</button>
+        </form>
+
+        {message && (
+          <p
+            style={{
+              marginTop: "10px",
+              color: message.includes("successfully") ? "lightgreen" : "red",
+            }}
+          >
+            {message}
+          </p>
+        )}
+
+        <p style={{ marginTop: "20px" }}>
+          Already have an account? <Link to="/login">Log In</Link>
+        </p>
+      </div>
+    </>
   );
 }
