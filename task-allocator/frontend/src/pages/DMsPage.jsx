@@ -1,6 +1,6 @@
 import React from "react";
 
-export default function DMsPage() {
+export default function DMsPage({ onLogout }) {
   const dms = ["Alice", "Bob", "Charlie"];
   return (
     <div>

@@ -1,40 +1,41 @@
-
 import React, { useState } from 'react';
 import { Link } from 'react-router-dom';
-
-// ✅ This import stays
+import axios from 'axios';
 import AnimatedBackground from "../components/AnimatedBackground";
+
+const API_URL = 'http://localhost:5000/api';
 
 export default function LoginPage({ onLogin }) {
   const [email, setEmail] = useState('');
   const [password, setPassword] = useState('');
   const [error, setError] = useState('');
+  const [loading, setLoading] = useState(false);
 
-  const handleSubmit = (e) => {
+  const handleSubmit = async (e) => {
     e.preventDefault();
     setError('');
+    setLoading(true);
 
-    const staticUsers = [
-      { email: 'user@example.com', password: 'password123' },
-      { email: 'admin@taskapp.com', password: 'admin' }
-    ];
+    try {
+      const response = await axios.post(`${API_URL}/auth/login`, {
+        email,
+        password
+      });
 
-    const localUsers = JSON.parse(localStorage.getItem('mockUsers')) || [];
-    const allUsers = [...staticUsers, ...localUsers];
-    const user = allUsers.find(
-      (u) => u.email === email && u.password === password
-    );
+      // Store token and user info
+      localStorage.setItem('token', response.data.token);
+      localStorage.setItem('user', JSON.stringify(response.data.user));
 
-    if (user) {
       onLogin();
-    } else {
-      setError('Invalid email or password. Please try again or create an account.');
+    } catch (error) {
+      setError(error.response?.data?.error || 'Invalid email or password. Please try again.');
+    } finally {
+      setLoading(false);
     }
   };
 
   return (
     <>
-      {/* ⭐ THIS is where your new animated background goes */}
       <AnimatedBackground />
       <div style={{
         minHeight: '100vh',
@@ -87,7 +88,7 @@ export default function LoginPage({ onLogin }) {
             marginBottom: '30px',
             fontSize: '0.95rem'
           }}>
-            Manage your team efficiently
+            Manage your team efficiently with AI
           </p>
 
           <form onSubmit={handleSubmit} style={{
@@ -102,6 +103,7 @@ export default function LoginPage({ onLogin }) {
                 value={email}
                 onChange={(e) => setEmail(e.target.value)}
                 required
+                disabled={loading}
                 style={{
                   width: '100%',
                   padding: '12px 16px',
@@ -132,6 +134,7 @@ export default function LoginPage({ onLogin }) {
                 value={password}
                 onChange={(e) => setPassword(e.target.value)}
                 required
+                disabled={loading}
                 style={{
                   width: '100%',
                   padding: '12px 16px',
@@ -157,29 +160,34 @@ export default function LoginPage({ onLogin }) {
 
             <button
               type="submit"
+              disabled={loading}
               style={{
                 width: '100%',
                 padding: '12px',
                 borderRadius: '10px',
                 border: 'none',
-                background: 'linear-gradient(135deg, #7c3aed 0%, #a855f7 100%)',
+                background: loading 
+                  ? 'linear-gradient(135deg, #9ca3af 0%, #6b7280 100%)'
+                  : 'linear-gradient(135deg, #7c3aed 0%, #a855f7 100%)',
                 color: 'white',
                 fontSize: '1rem',
                 fontWeight: '600',
-                cursor: 'pointer',
+                cursor: loading ? 'not-allowed' : 'pointer',
                 transition: 'all 0.3s ease',
                 boxShadow: '0 4px 15px rgba(124, 58, 237, 0.4)'
               }}
               onMouseEnter={(e) => {
-                e.target.style.transform = 'translateY(-2px)';
-                e.target.style.boxShadow = '0 6px 20px rgba(124, 58, 237, 0.6)';
+                if (!loading) {
+                  e.target.style.transform = 'translateY(-2px)';
+                  e.target.style.boxShadow = '0 6px 20px rgba(124, 58, 237, 0.6)';
+                }
               }}
               onMouseLeave={(e) => {
                 e.target.style.transform = 'translateY(0)';
                 e.target.style.boxShadow = '0 4px 15px rgba(124, 58, 237, 0.4)';
               }}
             >
-              Log In
+              {loading ? 'Logging in...' : 'Log In'}
             </button>
           </form>
 

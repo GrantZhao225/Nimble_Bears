@@ -1,16 +1,102 @@
-# React + Vite
+# Task Allocator
 
-This template provides a minimal setup to get React working in Vite with HMR and some ESLint rules.
+A full-stack task management application with React frontend and Express backend.
 
-Currently, two official plugins are available:
+## Project Structure
 
-- [@vitejs/plugin-react](https://github.com/vitejs/vite-plugin-react/blob/main/packages/plugin-react) uses [Babel](https://babeljs.io/) (or [oxc](https://oxc.rs) when used in [rolldown-vite](https://vite.dev/guide/rolldown)) for Fast Refresh
-- [@vitejs/plugin-react-swc](https://github.com/vitejs/vite-plugin-react/blob/main/packages/plugin-react-swc) uses [SWC](https://swc.rs/) for Fast Refresh
+```
+task-allocator/
+├── frontend/          # React + Vite frontend application
+│   ├── src/          # React components and pages
+│   ├── public/       # Static assets
+│   ├── index.html    # HTML entry point
+│   ├── vite.config.js
+│   └── package.json
+├── backend/          # Express.js backend server
+│   ├── server.js     # Main server file
+│   └── package.json
+└── package.json      # Root workspace configuration
+```
 
-## React Compiler
+## Getting Started
 
-The React Compiler is not enabled on this template because of its impact on dev & build performances. To add it, see [this documentation](https://react.dev/learn/react-compiler/installation).
+### Prerequisites
 
-## Expanding the ESLint configuration
+- Node.js (v18 or higher)
+- npm or yarn
+- MongoDB database (connection string in backend/server.js)
 
-If you are developing a production application, we recommend using TypeScript with type-aware lint rules enabled. Check out the [TS template](https://github.com/vitejs/vite/tree/main/packages/create-vite/template-react-ts) for information on how to integrate TypeScript and [`typescript-eslint`](https://typescript-eslint.io) in your project.
+### Installation
+
+1. Install root dependencies:
+```bash
+npm install
+```
+
+2. Install frontend dependencies:
+```bash
+npm install --workspace=frontend
+```
+
+3. Install backend dependencies:
+```bash
+npm install --workspace=backend
+```
+
+Or install all at once:
+```bash
+npm run install:all
+```
+
+### Running the Application
+
+#### Option 1: Run both frontend and backend together
+```bash
+npm run dev
+```
+
+#### Option 2: Run separately
+
+**Frontend only:**
+```bash
+npm run dev:frontend
+# or
+cd frontend && npm run dev
+```
+
+**Backend only:**
+```bash
+npm run dev:backend
+# or
+cd backend && npm run start
+```
+
+### Development
+
+- **Frontend**: Runs on `http://localhost:5173`
+- **Backend API**: Runs on `http://localhost:5000`
+
+The frontend is configured to proxy API requests to the backend automatically.
+
+### Building for Production
+
+```bash
+npm run build
+```
+
+This will build the frontend application in the `frontend/dist` directory.
+
+## Features
+
+- User authentication (Sign up / Login)
+- Task management
+- Project tracking
+- Team chat with AI summarization
+- File management
+- Direct messaging
+
+## Technologies
+
+- **Frontend**: React 19, Vite, React Router
+- **Backend**: Express.js, MongoDB (Mongoose), JWT authentication
+- **AI**: Google Gemini AI for chat summarization
