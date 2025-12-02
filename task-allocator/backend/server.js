@@ -14,14 +14,14 @@ app.use(cors());
 app.use(express.json());
 
 // MongoDB Connection
-const MONGO_URI = 'mongodb+srv://gz220310_db_user:<password>@cluster0.hughmek.mongodb.net/task-allocator?retryWrites=true&w=majority';
+const MONGO_URI = 'mongodb+srv://gz220310_db_user:cUlhh3z821WUvwEL@cluster0.hughmek.mongodb.net/task-allocator?retryWrites=true&w=majority';
 
 mongoose.connect(MONGO_URI)
   .then(() => console.log('✅ MongoDB Connected'))
   .catch(err => console.error('❌ MongoDB Connection Error:', err));
 
 // Google Gemini AI Setup
-const genAI = new GoogleGenerativeAI('Here is for gemini key');
+const genAI = new GoogleGenerativeAI('AIzaSyCLW5q4NMAuiYTGKqac8FRz43kXacG9BCI');
 
 // MongoDB Schemas
 const userSchema = new mongoose.Schema({
