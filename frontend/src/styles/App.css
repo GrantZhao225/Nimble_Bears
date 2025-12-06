@@ -1,0 +1,131 @@
+body {
+  font-family: Arial, sans-serif;
+  margin: 0;
+  background-color: #f6f8fa;
+}
+
+.app {
+  display: flex;
+}
+
+.sidebar {
+  /* match the primary app gradient for visual consistency */
+  background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+  color: white;
+  width: 180px; /* slightly narrower */
+  padding: 16px 14px;
+  height: 100vh;
+  position: fixed; /* keeps sidebar visible while scrolling */
+  top: 0;
+  left: 0;
+  overflow-y: auto; /* allow internal scroll if content overflows */
+  -webkit-overflow-scrolling: touch;
+  box-shadow: 0 8px 30px rgba(102,126,234,0.12);
+  border-right: 1px solid rgba(255,255,255,0.06);
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+  z-index: 40;
+}
+
+.sidebar h2 {
+  margin-bottom: 12px;
+  font-size: 1.05rem;
+  letter-spacing: 0.4px;
+  font-weight: 700;
+}
+
+.sidebar a,
+.submenu-toggle {
+  display: block;
+  color: #eaf2ff; /* softer light accent that pairs with the gradient */
+  text-decoration: none;
+  margin: 6px 0;
+  padding: 10px 12px;
+  border-radius: 8px;
+  cursor: pointer;
+  transition: background 160ms ease, transform 120ms ease, color 160ms ease;
+  font-weight: 600;
+}
+
+.sidebar a:hover,
+.submenu-toggle:hover {
+  background: rgba(255,255,255,0.06);
+  transform: translateX(6px);
+  color: #ffffff;
+}
+
+.submenu {
+  margin-left: 12px;
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+  margin-top: 6px;
+}
+
+.submenu a {
+  padding: 8px 10px;
+  border-radius: 6px;
+  background: transparent;
+  color: #e6f0ff;
+  font-weight: 500;
+}
+
+.main-content {
+  padding: 24px;
+  flex: 1;
+  margin-left: 180px; /* updated to match sidebar width */
+  min-height: 100vh;
+}
+
+.login-page {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  margin-top: 100px;
+}
+
+.login-page form {
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+  width: 250px;
+}
+
+.login-page input,
+.login-page button {
+  padding: 10px;
+  border-radius: 4px;
+  border: 1px solid #ccc;
+}
+
+table {
+  width: 100%;
+  border-collapse: collapse;
+}
+
+table th,
+table td {
+  padding: 10px;
+  border: 1px solid #ccc;
+  text-align: left;
+}
+
+/* prevent link text from wrapping mid-label */
+.sidebar a,
+.submenu-toggle,
+.submenu a {
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+/* subtle custom scrollbar for the sidebar */
+.sidebar::-webkit-scrollbar {
+  width: 8px;
+}
+.sidebar::-webkit-scrollbar-thumb {
+  background: rgba(255,255,255,0.08);
+  border-radius: 8px;
+}
+
