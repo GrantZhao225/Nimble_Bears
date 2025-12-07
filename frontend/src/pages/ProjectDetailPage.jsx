@@ -577,22 +577,37 @@ function ProjectChat({ projectId }) {
                     </p>
                   </div>
                   {isCurrentUser && (
-                    <div
-                      style={{
-                        width: '35px',
-                        height: '35px',
-                        borderRadius: '50%',
-                        background: 'linear-gradient(135deg, #667eea 0%, #764ba2 100%)',
-                        display: 'flex',
-                        alignItems: 'center',
-                        justifyContent: 'center',
-                        color: 'white',
-                        fontSize: '0.9rem',
-                        fontWeight: 'bold',
-                        flexShrink: 0
-                      }}
-                    >
-                      {currentUser?.name?.charAt(0).toUpperCase() || 'U'}
+                    <div style={{ width: '35px', height: '35px', flexShrink: 0 }}>
+                      {currentUser?.avatar ? (
+                        <img
+                          src={currentUser.avatar}
+                          alt="avatar"
+                          style={{
+                            width: '35px',
+                            height: '35px',
+                            borderRadius: '50%',
+                            objectFit: 'cover',
+                            border: '2px solid rgba(255,255,255,0.15)'
+                          }}
+                        />
+                      ) : (
+                        <div
+                          style={{
+                            width: '35px',
+                            height: '35px',
+                            borderRadius: '50%',
+                            background: 'linear-gradient(135deg, #667eea 0%, #764ba2 100%)',
+                            display: 'flex',
+                            alignItems: 'center',
+                            justifyContent: 'center',
+                            color: 'white',
+                            fontSize: '0.9rem',
+                            fontWeight: 'bold'
+                          }}
+                        >
+                          {currentUser?.name?.charAt(0).toUpperCase() || 'U'}
+                        </div>
+                      )}
                     </div>
                   )}
                 </div>
