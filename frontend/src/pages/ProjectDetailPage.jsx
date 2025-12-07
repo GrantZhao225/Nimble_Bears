@@ -921,6 +921,12 @@ function ProjectTasks({ projectId, projectMembers }) {
   });
   const [filter, setFilter] = useState('all');
 
+  // calendar state
+  const [calendarMonth, setCalendarMonth] = useState(() => {
+    const d = new Date();
+    return new Date(d.getFullYear(), d.getMonth(), 1);
+  });
+
   useEffect(() => {
     fetchTasks();
   }, [projectId]);
@@ -962,16 +968,24 @@ function ProjectTasks({ projectId, projectMembers }) {
     }
   };
 
-  const handleUpdateTaskStatus = async (taskId, newStatus) => {
+  // Generic update helper for any task field
+  const handleUpdateTask = async (taskId, updates) => {
     try {
       const token = localStorage.getItem('token');
-      await axios.put(`${API_URL}/tasks/${taskId}`, { status: newStatus }, {
+      await axios.put(`${API_URL}/tasks/${taskId}`, updates, {
         headers: { Authorization: `Bearer ${token}` }
       });
-      fetchTasks();
+      // optimistic UI: update local state quickly
+      setTasks(prev => prev.map(t => (t._id === taskId ? { ...t, ...updates } : t)));
     } catch (error) {
       console.error('Error updating task:', error);
+      // fallback: refetch
+      fetchTasks();
     }
+  };
+
+  const handleUpdateTaskStatus = (taskId, newStatus) => {
+    handleUpdateTask(taskId, { status: newStatus });
   };
 
   const handleDeleteTask = async (taskId) => {
@@ -991,6 +1005,84 @@ function ProjectTasks({ projectId, projectMembers }) {
     if (filter === 'all') return true;
     return task.status === filter;
   });
+
+  // Calendar helpers
+  const addMonths = (d, months) => new Date(d.getFullYear(), d.getMonth() + months, 1);
+  const startOfMonth = (d) => new Date(d.getFullYear(), d.getMonth(), 1);
+  const daysInMonth = (d) => new Date(d.getFullYear(), d.getMonth() + 1, 0).getDate();
+
+  const tasksByDate = {};
+  tasks.forEach(t => {
+    if (!t.dueDate) return;
+    const d = new Date(t.dueDate);
+    const key = d.toDateString();
+    if (!tasksByDate[key]) tasksByDate[key] = [];
+    tasksByDate[key].push(t);
+  });
+
+  // render calendar grid for current calendarMonth
+  const renderCalendar = () => {
+    const first = startOfMonth(calendarMonth);
+    const totalDays = daysInMonth(calendarMonth);
+    const startWeekday = first.getDay(); // 0 (Sun) - 6
+    const cells = [];
+
+    // previous month placeholders
+    for (let i = 0; i < startWeekday; i++) cells.push(null);
+
+    for (let day = 1; day <= totalDays; day++) {
+      const date = new Date(calendarMonth.getFullYear(), calendarMonth.getMonth(), day);
+      const key = date.toDateString();
+      const dayTasks = tasksByDate[key] || [];
+      cells.push({ date, dayTasks });
+    }
+
+    // pad to complete week(s)
+    while (cells.length % 7 !== 0) cells.push(null);
+
+    const rows = [];
+    for (let i = 0; i < cells.length; i += 7) {
+      rows.push(cells.slice(i, i + 7));
+    }
+
+    return (
+      <div style={{ width: 320, borderRadius: 8, padding: 12, background: '#fff', boxShadow: '0 6px 18px rgba(0,0,0,0.04)' }}>
+        <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: 8 }}>
+          <button onClick={() => setCalendarMonth(addMonths(calendarMonth, -1))} style={{ border: 'none', background: 'transparent', cursor: 'pointer' }}>◀</button>
+          <div style={{ fontWeight: 700 }}>{calendarMonth.toLocaleString(undefined, { month: 'long', year: 'numeric' })}</div>
+          <button onClick={() => setCalendarMonth(addMonths(calendarMonth, 1))} style={{ border: 'none', background: 'transparent', cursor: 'pointer' }}>▶</button>
+        </div>
+        <div style={{ display: 'grid', gridTemplateColumns: 'repeat(7, 1fr)', gap: 6, marginBottom: 8, fontSize: 12, color: '#6b7280' }}>
+          {['Sun','Mon','Tue','Wed','Thu','Fri','Sat'].map(d => <div key={d} style={{ textAlign: 'center' }}>{d}</div>)}
+        </div>
+        <div>
+          {rows.map((row, rIdx) => (
+            <div key={rIdx} style={{ display: 'grid', gridTemplateColumns: 'repeat(7, 1fr)', gap: 6, marginBottom: 6 }}>
+              {row.map((cell, cIdx) => (
+                cell ? (
+                  <div key={cIdx} style={{ minHeight: 64, borderRadius: 8, padding: 6, background: '#f8fafc', position: 'relative' }}>
+                    <div style={{ fontSize: 12, fontWeight: 700, marginBottom: 6 }}>{cell.date.getDate()}</div>
+                    <div style={{ display: 'flex', flexDirection: 'column', gap: 4 }}>
+                      {cell.dayTasks.slice(0,3).map(t => (
+                        <div key={t._id} title={t.title} style={{ background: t.priority === 'High' ? '#fee2e2' : t.priority === 'Medium' ? '#fef3c7' : '#ecfdf5', padding: '2px 6px', borderRadius: 6, fontSize: 11, overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>
+                          {t.title}
+                        </div>
+                      ))}
+                      {cell.dayTasks.length > 3 && (
+                        <div style={{ fontSize: 11, color: '#6b7280' }}>+{cell.dayTasks.length - 3} more</div>
+                      )}
+                    </div>
+                  </div>
+                ) : (
+                  <div key={cIdx} style={{ minHeight: 64 }} />
+                )
+              ))}
+            </div>
+          ))}
+        </div>
+      </div>
+    );
+  };
 
   return (
     <div>
@@ -1093,65 +1185,93 @@ function ProjectTasks({ projectId, projectMembers }) {
         </div>
       )}
 
-      <div style={{ background: 'white', borderRadius: '12px', overflow: 'hidden' }}>
-        {filteredTasks.length === 0 ? (
-          <div style={{ padding: '40px', textAlign: 'center', color: '#6b7280' }}>
-            No tasks found. Create your first task!
+      <div style={{ display: 'flex', gap: 20 }}>
+        <div style={{ flex: 1 }}>
+          <div style={{ background: 'white', borderRadius: '12px', overflow: 'hidden' }}>
+            {filteredTasks.length === 0 ? (
+              <div style={{ padding: '40px', textAlign: 'center', color: '#6b7280' }}>
+                No tasks found. Create your first task!
+              </div>
+            ) : (
+              <table style={{ width: '100%', borderCollapse: 'collapse' }}>
+                <thead style={{ background: '#f9fafb' }}>
+                  <tr>
+                    <th style={{ padding: '15px', textAlign: 'left' }}>Task</th>
+                    <th style={{ padding: '15px', textAlign: 'left' }}>Assigned To</th>
+                    <th style={{ padding: '15px', textAlign: 'left' }}>Priority</th>
+                    <th style={{ padding: '15px', textAlign: 'left' }}>Status</th>
+                    <th style={{ padding: '15px', textAlign: 'left' }}>Due Date</th>
+                    <th style={{ padding: '15px', textAlign: 'center' }}>Actions</th>
+                  </tr>
+                </thead>
+                <tbody>
+                  {filteredTasks.map(task => (
+                    <tr key={task._id} style={{ borderBottom: '1px solid #e5e7eb' }}>
+                      <td style={{ padding: '15px' }}>
+                        <div style={{ fontWeight: '600' }}>{task.title}</div>
+                        {task.description && <div style={{ fontSize: '0.85rem', color: '#6b7280' }}>{task.description}</div>}
+                      </td>
+                      <td style={{ padding: '15px' }}>
+                        <select
+                          value={task.assignedTo?._id || task.assignedTo || ''}
+                          onChange={(e) => handleUpdateTask(task._id, { assignedTo: e.target.value || null })}
+                          style={{ padding: '8px', border: '1px solid #e5e7eb', borderRadius: 8 }}
+                        >
+                          <option value="">Unassigned</option>
+                          {projectMembers?.map(member => (
+                            <option key={member._id} value={member._id}>{member.name}</option>
+                          ))}
+                        </select>
+                      </td>
+                      <td style={{ padding: '15px' }}>
+                        <select
+                          value={task.priority}
+                          onChange={(e) => handleUpdateTask(task._id, { priority: e.target.value })}
+                          style={{ padding: '8px', border: '1px solid #e5e7eb', borderRadius: 8 }}
+                        >
+                          <option value="Low">Low</option>
+                          <option value="Medium">Medium</option>
+                          <option value="High">High</option>
+                        </select>
+                      </td>
+                      <td style={{ padding: '15px' }}>
+                        <select
+                          value={task.status}
+                          onChange={(e) => handleUpdateTaskStatus(task._id, e.target.value)}
+                          style={{ background: task.status === 'Completed' ? '#10b981' : task.status === 'In Progress' ? '#3b82f6' : '#f59e0b', color: 'white', border: 'none', padding: '6px 12px', borderRadius: '8px', cursor: 'pointer' }}
+                        >
+                          <option value="Pending">Pending</option>
+                          <option value="In Progress">In Progress</option>
+                          <option value="Completed">Completed</option>
+                        </select>
+                      </td>
+                      <td style={{ padding: '15px' }}>
+                        <input
+                          type="date"
+                          value={task.dueDate ? new Date(task.dueDate).toISOString().slice(0,10) : ''}
+                          onChange={(e) => handleUpdateTask(task._id, { dueDate: e.target.value || null })}
+                          style={{ padding: '8px', border: '1px solid #e5e7eb', borderRadius: 8 }}
+                        />
+                      </td>
+                      <td style={{ padding: '15px', textAlign: 'center' }}>
+                        <button
+                          onClick={() => handleDeleteTask(task._id)}
+                          style={{ background: '#fee2e2', color: '#ef4444', border: 'none', padding: '6px 12px', borderRadius: '6px', cursor: 'pointer' }}
+                        >
+                          Delete
+                        </button>
+                      </td>
+                    </tr>
+                  ))}
+                </tbody>
+              </table>
+            )}
           </div>
-        ) : (
-          <table style={{ width: '100%', borderCollapse: 'collapse' }}>
-            <thead style={{ background: '#f9fafb' }}>
-              <tr>
-                <th style={{ padding: '15px', textAlign: 'left' }}>Task</th>
-                <th style={{ padding: '15px', textAlign: 'left' }}>Assigned To</th>
-                <th style={{ padding: '15px', textAlign: 'left' }}>Priority</th>
-                <th style={{ padding: '15px', textAlign: 'left' }}>Status</th>
-                <th style={{ padding: '15px', textAlign: 'left' }}>Due Date</th>
-                <th style={{ padding: '15px', textAlign: 'center' }}>Actions</th>
-              </tr>
-            </thead>
-            <tbody>
-              {filteredTasks.map(task => (
-                <tr key={task._id} style={{ borderBottom: '1px solid #e5e7eb' }}>
-                  <td style={{ padding: '15px' }}>
-                    <div style={{ fontWeight: '600' }}>{task.title}</div>
-                    {task.description && <div style={{ fontSize: '0.85rem', color: '#6b7280' }}>{task.description}</div>}
-                  </td>
-                  <td style={{ padding: '15px' }}>
-                    {task.assignedTo?.name || <span style={{ color: '#9ca3af' }}>Unassigned</span>}
-                  </td>
-                  <td style={{ padding: '15px' }}>
-                    <span style={{ background: task.priority === 'High' ? '#ef4444' : task.priority === 'Medium' ? '#f59e0b' : '#10b981', color: 'white', padding: '4px 12px', borderRadius: '12px', fontSize: '0.85rem' }}>
-                      {task.priority}
-                    </span>
-                  </td>
-                  <td style={{ padding: '15px' }}>
-                    <select
-                      value={task.status}
-                      onChange={(e) => handleUpdateTaskStatus(task._id, e.target.value)}
-                      style={{ background: task.status === 'Completed' ? '#10b981' : task.status === 'In Progress' ? '#3b82f6' : '#f59e0b', color: 'white', border: 'none', padding: '6px 12px', borderRadius: '8px', cursor: 'pointer' }}
-                    >
-                      <option value="Pending">Pending</option>
-                      <option value="In Progress">In Progress</option>
-                      <option value="Completed">Completed</option>
-                    </select>
-                  </td>
-                  <td style={{ padding: '15px' }}>
-                    {task.dueDate ? new Date(task.dueDate).toLocaleDateString() : <span style={{ color: '#9ca3af' }}>No deadline</span>}
-                  </td>
-                  <td style={{ padding: '15px', textAlign: 'center' }}>
-                    <button
-                      onClick={() => handleDeleteTask(task._id)}
-                      style={{ background: '#fee2e2', color: '#ef4444', border: 'none', padding: '6px 12px', borderRadius: '6px', cursor: 'pointer' }}
-                    >
-                      Delete
-                    </button>
-                  </td>
-                </tr>
-              ))}
-            </tbody>
-          </table>
-        )}
+        </div>
+
+        <div style={{ width: 340 }}>
+          {renderCalendar()}
+        </div>
       </div>
     </div>
   );
