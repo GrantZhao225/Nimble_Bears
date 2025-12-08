@@ -54,11 +54,9 @@ export default function CalendarPage({ onLogout }) {
     const startingDayOfWeek = firstDay.getDay();
 
     const days = [];
-    // Add empty slots for days before the first of the month
     for (let i = 0; i < startingDayOfWeek; i++) {
       days.push(null);
     }
-    // Add all days of the month
     for (let i = 1; i <= daysInMonth; i++) {
       days.push(new Date(year, month, i));
     }
@@ -174,7 +172,6 @@ export default function CalendarPage({ onLogout }) {
         </p>
       </div>
 
-      {/* Calendar Header */}
       <div style={{
         background: 'white',
         padding: '25px',
@@ -222,7 +219,6 @@ export default function CalendarPage({ onLogout }) {
           </button>
         </div>
 
-        {/* Day Names */}
         <div style={{
           display: 'grid',
           gridTemplateColumns: 'repeat(7, 1fr)',
@@ -241,7 +237,6 @@ export default function CalendarPage({ onLogout }) {
           ))}
         </div>
 
-        {/* Calendar Grid */}
         <div style={{
           display: 'grid',
           gridTemplateColumns: 'repeat(7, 1fr)',
@@ -379,7 +374,27 @@ export default function CalendarPage({ onLogout }) {
               border: '1px solid #f59e0b',
               borderRadius: '4px'
             }}></div>
-            <span style={{ fontSize: '0.9rem' }}>Tasks</span>
+            <span style={{ fontSize: '0.9rem' }}>Pending Tasks</span>
+          </div>
+          <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
+            <div style={{
+              width: '20px',
+              height: '20px',
+              background: '#dbeafe',
+              border: '1px solid #3b82f6',
+              borderRadius: '4px'
+            }}></div>
+            <span style={{ fontSize: '0.9rem' }}>In Progress Tasks</span>
+          </div>
+          <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
+            <div style={{
+              width: '20px',
+              height: '20px',
+              background: '#d1fae5',
+              border: '1px solid #10b981',
+              borderRadius: '4px'
+            }}></div>
+            <span style={{ fontSize: '0.9rem' }}>Completed Tasks</span>
           </div>
         </div>
       </div>

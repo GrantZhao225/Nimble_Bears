@@ -11,8 +11,10 @@ export default function HomePage({ onLogout }) {
   const [favorites, setFavorites] = useState([]);
   const [showNewProject, setShowNewProject] = useState(false);
   const [showInviteModal, setShowInviteModal] = useState(false);
+  const [showEditModal, setShowEditModal] = useState(false);
   const [selectedProject, setSelectedProject] = useState(null);
   const [inviteEmail, setInviteEmail] = useState('');
+  const [editedProject, setEditedProject] = useState(null);
   const [newProject, setNewProject] = useState({
     title: '',
     description: '',
@@ -33,7 +35,6 @@ export default function HomePage({ onLogout }) {
     }
   }, []);
 
-  // Auto-refresh every 5 seconds
   useEffect(() => {
     const interval = setInterval(() => {
       fetchProjects();
@@ -145,6 +146,36 @@ export default function HomePage({ onLogout }) {
     }
   };
 
+  const handleEditProject = (project) => {
+    setEditedProject({
+      ...project,
+      dueDate: project.dueDate ? new Date(project.dueDate).toISOString().split('T')[0] : ''
+    });
+    setShowEditModal(true);
+  };
+
+  const handleUpdateProject = async (e) => {
+    e.preventDefault();
+    try {
+      const token = localStorage.getItem('token');
+      await axios.put(`${API_URL}/projects/${editedProject._id}`, {
+        title: editedProject.title,
+        description: editedProject.description,
+        status: editedProject.status,
+        dueDate: editedProject.dueDate
+      }, {
+        headers: { Authorization: `Bearer ${token}` }
+      });
+      setShowEditModal(false);
+      setEditedProject(null);
+      fetchProjects();
+      alert('Project updated successfully!');
+    } catch (error) {
+      console.error('Error updating project:', error);
+      alert('Failed to update project');
+    }
+  };
+
   const handleDeleteProject = async (id) => {
     if (!window.confirm('Delete this project?')) return;
     try {
@@ -190,7 +221,6 @@ export default function HomePage({ onLogout }) {
         </p>
       </div>
 
-      {/* Invitations Section */}
       {invitations.length > 0 && (
         <div style={{
           background: '#fef3c7',
@@ -380,7 +410,6 @@ export default function HomePage({ onLogout }) {
         </div>
       )}
 
-      {/* In Progress Projects */}
       {inProgressProjects.length > 0 && (
         <>
           <h3 style={{ marginBottom: '20px', color: '#3b82f6' }}>In Progress</h3>
@@ -395,6 +424,7 @@ export default function HomePage({ onLogout }) {
                 key={project._id}
                 project={project}
                 onDelete={handleDeleteProject}
+                onEdit={handleEditProject}
                 onInvite={(p) => { setSelectedProject(p); setShowInviteModal(true); }}
                 statusColor={getStatusColor(project.status)}
                 navigate={navigate}
@@ -406,7 +436,6 @@ export default function HomePage({ onLogout }) {
         </>
       )}
 
-      {/* Upcoming Projects */}
       {upcomingProjects.length > 0 && (
         <>
           <h3 style={{ marginBottom: '20px', color: '#f59e0b' }}>Upcoming</h3>
@@ -421,6 +450,7 @@ export default function HomePage({ onLogout }) {
                 key={project._id}
                 project={project}
                 onDelete={handleDeleteProject}
+                onEdit={handleEditProject}
                 onInvite={(p) => { setSelectedProject(p); setShowInviteModal(true); }}
                 statusColor={getStatusColor(project.status)}
                 navigate={navigate}
@@ -432,7 +462,6 @@ export default function HomePage({ onLogout }) {
         </>
       )}
 
-      {/* Completed Projects */}
       {completedProjects.length > 0 && (
         <>
           <h3 style={{ marginBottom: '20px', color: '#10b981' }}>Completed</h3>
@@ -446,6 +475,7 @@ export default function HomePage({ onLogout }) {
                 key={project._id}
                 project={project}
                 onDelete={handleDeleteProject}
+                onEdit={handleEditProject}
                 onInvite={(p) => { setSelectedProject(p); setShowInviteModal(true); }}
                 statusColor={getStatusColor(project.status)}
                 navigate={navigate}
@@ -470,7 +500,6 @@ export default function HomePage({ onLogout }) {
         </div>
       )}
 
-      {/* Invite Modal */}
       {showInviteModal && selectedProject && (
         <div style={{
           position: 'fixed',
@@ -549,11 +578,149 @@ export default function HomePage({ onLogout }) {
           </div>
         </div>
       )}
+
+      {showEditModal && editedProject && (
+        <div style={{
+          position: 'fixed',
+          top: 0,
+          left: 0,
+          right: 0,
+          bottom: 0,
+          background: 'rgba(0,0,0,0.5)',
+          display: 'flex',
+          justifyContent: 'center',
+          alignItems: 'center',
+          zIndex: 1000
+        }}>
+          <div style={{
+            background: 'white',
+            padding: '30px',
+            borderRadius: '12px',
+            width: '90%',
+            maxWidth: '600px'
+          }}>
+            <h2 style={{ marginTop: 0 }}>Edit Project</h2>
+            <form onSubmit={handleUpdateProject}>
+              <div style={{ marginBottom: '15px' }}>
+                <label style={{ display: 'block', marginBottom: '5px', fontWeight: '600' }}>
+                  Project Title
+                </label>
+                <input
+                  type="text"
+                  value={editedProject.title}
+                  onChange={(e) => setEditedProject({ ...editedProject, title: e.target.value })}
+                  required
+                  style={{
+                    width: '100%',
+                    padding: '12px',
+                    border: '1px solid #ddd',
+                    borderRadius: '8px',
+                    fontSize: '1rem'
+                  }}
+                />
+              </div>
+              <div style={{ marginBottom: '15px' }}>
+                <label style={{ display: 'block', marginBottom: '5px', fontWeight: '600' }}>
+                  Description
+                </label>
+                <textarea
+                  value={editedProject.description}
+                  onChange={(e) => setEditedProject({ ...editedProject, description: e.target.value })}
+                  style={{
+                    width: '100%',
+                    padding: '12px',
+                    border: '1px solid #ddd',
+                    borderRadius: '8px',
+                    fontSize: '1rem',
+                    minHeight: '80px'
+                  }}
+                />
+              </div>
+              <div style={{ display: 'flex', gap: '15px', marginBottom: '20px' }}>
+                <div style={{ flex: 1 }}>
+                  <label style={{ display: 'block', marginBottom: '5px', fontWeight: '600' }}>
+                    Status
+                  </label>
+                  <select
+                    value={editedProject.status}
+                    onChange={(e) => setEditedProject({ ...editedProject, status: e.target.value })}
+                    style={{
+                      width: '100%',
+                      padding: '12px',
+                      border: '1px solid #ddd',
+                      borderRadius: '8px',
+                      fontSize: '1rem'
+                    }}
+                  >
+                    <option value="Upcoming">Upcoming</option>
+                    <option value="In Progress">In Progress</option>
+                    <option value="Completed">Completed</option>
+                  </select>
+                </div>
+                <div style={{ flex: 1 }}>
+                  <label style={{ display: 'block', marginBottom: '5px', fontWeight: '600' }}>
+                    Due Date
+                  </label>
+                  <input
+                    type="date"
+                    value={editedProject.dueDate}
+                    onChange={(e) => setEditedProject({ ...editedProject, dueDate: e.target.value })}
+                    style={{
+                      width: '100%',
+                      padding: '12px',
+                      border: '1px solid #ddd',
+                      borderRadius: '8px',
+                      fontSize: '1rem'
+                    }}
+                  />
+                </div>
+              </div>
+              <div style={{ display: 'flex', gap: '10px' }}>
+                <button
+                  type="submit"
+                  style={{
+                    background: '#10b981',
+                    color: 'white',
+                    border: 'none',
+                    padding: '12px 24px',
+                    borderRadius: '8px',
+                    cursor: 'pointer',
+                    fontSize: '1rem',
+                    flex: 1,
+                    fontWeight: '600'
+                  }}
+                >
+                  Save Changes
+                </button>
+                <button
+                  type="button"
+                  onClick={() => {
+                    setShowEditModal(false);
+                    setEditedProject(null);
+                  }}
+                  style={{
+                    background: '#6b7280',
+                    color: 'white',
+                    border: 'none',
+                    padding: '12px 24px',
+                    borderRadius: '8px',
+                    cursor: 'pointer',
+                    fontSize: '1rem',
+                    flex: 1
+                  }}
+                >
+                  Cancel
+                </button>
+              </div>
+            </form>
+          </div>
+        </div>
+      )}
     </div>
   );
 }
 
-function ProjectCard({ project, onDelete, statusColor, onInvite, navigate, onFavorite, isFavorite }) {
+function ProjectCard({ project, onDelete, onEdit, statusColor, onInvite, navigate, onFavorite, isFavorite }) {
   return (
     <div style={{
       background: 'white',
@@ -581,6 +748,23 @@ function ProjectCard({ project, onDelete, statusColor, onInvite, navigate, onFav
       }}>
         <h4 style={{ margin: 0, fontSize: '1.3rem' }}>{project.title}</h4>
         <div style={{ display: 'flex', gap: '5px' }}>
+          <button
+            onClick={(e) => {
+              e.stopPropagation();
+              onEdit(project);
+            }}
+            style={{
+              background: 'transparent',
+              border: 'none',
+              color: '#667eea',
+              cursor: 'pointer',
+              fontSize: '1.2rem',
+              padding: '4px 8px'
+            }}
+            title="Edit project"
+          >
+            ✏️
+          </button>
           <button
             onClick={(e) => {
               e.stopPropagation();
