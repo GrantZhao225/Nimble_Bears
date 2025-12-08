@@ -8,6 +8,7 @@ export default function HomePage({ onLogout }) {
   const navigate = useNavigate();
   const [projects, setProjects] = useState([]);
   const [invitations, setInvitations] = useState([]);
+  const [favorites, setFavorites] = useState([]);
   const [showNewProject, setShowNewProject] = useState(false);
   const [showInviteModal, setShowInviteModal] = useState(false);
   const [selectedProject, setSelectedProject] = useState(null);
@@ -23,6 +24,22 @@ export default function HomePage({ onLogout }) {
   useEffect(() => {
     fetchProjects();
     fetchInvitations();
+  }, []);
+
+  useEffect(() => {
+    const saved = localStorage.getItem('favoriteProjects');
+    if (saved) {
+      setFavorites(JSON.parse(saved));
+    }
+  }, []);
+
+  // Auto-refresh every 5 seconds
+  useEffect(() => {
+    const interval = setInterval(() => {
+      fetchProjects();
+      fetchInvitations();
+    }, 5000);
+    return () => clearInterval(interval);
   }, []);
 
   const fetchProjects = async () => {
@@ -49,6 +66,21 @@ export default function HomePage({ onLogout }) {
     } catch (error) {
       console.error('Error fetching invitations:', error);
     }
+  };
+
+  const toggleFavorite = (projectId) => {
+    let newFavorites = [...favorites];
+    if (newFavorites.includes(projectId)) {
+      newFavorites = newFavorites.filter(id => id !== projectId);
+    } else {
+      if (newFavorites.length >= 5) {
+        alert('You can only favorite up to 5 projects');
+        return;
+      }
+      newFavorites.push(projectId);
+    }
+    setFavorites(newFavorites);
+    localStorage.setItem('favoriteProjects', JSON.stringify(newFavorites));
   };
 
   const handleSendInvitation = async (e) => {
@@ -221,24 +253,49 @@ export default function HomePage({ onLogout }) {
         display: 'flex',
         justifyContent: 'space-between',
         alignItems: 'center',
-        marginBottom: '30px'
+        marginBottom: '30px',
+        flexWrap: 'wrap',
+        gap: '10px'
       }}>
         <h2>Your Projects</h2>
-        <button
-          onClick={() => setShowNewProject(!showNewProject)}
-          style={{
-            background: 'linear-gradient(135deg, #667eea 0%, #764ba2 100%)',
-            color: 'white',
-            border: 'none',
-            padding: '12px 24px',
-            borderRadius: '8px',
-            cursor: 'pointer',
-            fontSize: '1rem',
-            fontWeight: '600'
-          }}
-        >
-          ➕ Add New Project
-        </button>
+        <div style={{ display: 'flex', gap: '10px' }}>
+          <button
+            onClick={() => {
+              fetchProjects();
+              fetchInvitations();
+            }}
+            style={{
+              background: '#10b981',
+              color: 'white',
+              border: 'none',
+              padding: '12px 24px',
+              borderRadius: '8px',
+              cursor: 'pointer',
+              fontSize: '1rem',
+              fontWeight: '600',
+              display: 'flex',
+              alignItems: 'center',
+              gap: '8px'
+            }}
+          >
+            🔄 Refresh
+          </button>
+          <button
+            onClick={() => setShowNewProject(!showNewProject)}
+            style={{
+              background: 'linear-gradient(135deg, #667eea 0%, #764ba2 100%)',
+              color: 'white',
+              border: 'none',
+              padding: '12px 24px',
+              borderRadius: '8px',
+              cursor: 'pointer',
+              fontSize: '1rem',
+              fontWeight: '600'
+            }}
+          >
+            ➕ Add New Project
+          </button>
+        </div>
       </div>
 
       {showNewProject && (
@@ -364,6 +421,8 @@ export default function HomePage({ onLogout }) {
                 onInvite={(p) => { setSelectedProject(p); setShowInviteModal(true); }}
                 statusColor={getStatusColor(project.status)}
                 navigate={navigate}
+                onFavorite={toggleFavorite}
+                isFavorite={favorites.includes(project._id)}
               />
             ))}
           </div>
@@ -388,6 +447,8 @@ export default function HomePage({ onLogout }) {
                 onInvite={(p) => { setSelectedProject(p); setShowInviteModal(true); }}
                 statusColor={getStatusColor(project.status)}
                 navigate={navigate}
+                onFavorite={toggleFavorite}
+                isFavorite={favorites.includes(project._id)}
               />
             ))}
           </div>
@@ -411,6 +472,8 @@ export default function HomePage({ onLogout }) {
                 onInvite={(p) => { setSelectedProject(p); setShowInviteModal(true); }}
                 statusColor={getStatusColor(project.status)}
                 navigate={navigate}
+                onFavorite={toggleFavorite}
+                isFavorite={favorites.includes(project._id)}
               />
             ))}
           </div>
@@ -513,7 +576,7 @@ export default function HomePage({ onLogout }) {
   );
 }
 
-function ProjectCard({ project, onDelete, statusColor, onInvite, navigate }) {
+function ProjectCard({ project, onDelete, statusColor, onInvite, navigate, onFavorite, isFavorite }) {
   return (
     <div style={{
       background: 'white',
@@ -541,6 +604,23 @@ function ProjectCard({ project, onDelete, statusColor, onInvite, navigate }) {
       }}>
         <h4 style={{ margin: 0, fontSize: '1.3rem' }}>{project.title}</h4>
         <div style={{ display: 'flex', gap: '5px' }}>
+          <button
+            onClick={(e) => {
+              e.stopPropagation();
+              onFavorite(project._id);
+            }}
+            style={{
+              background: 'transparent',
+              border: 'none',
+              color: isFavorite ? '#fbbf24' : '#d1d5db',
+              cursor: 'pointer',
+              fontSize: '1.3rem',
+              padding: '4px 8px'
+            }}
+            title={isFavorite ? "Remove from favorites" : "Add to favorites"}
+          >
+            ⭐
+          </button>
           <button
             onClick={(e) => {
               e.stopPropagation();
