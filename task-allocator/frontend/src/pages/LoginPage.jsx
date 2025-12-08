@@ -22,7 +22,6 @@ export default function LoginPage({ onLogin }) {
         password
       });
 
-      // Store token and user info
       localStorage.setItem('token', response.data.token);
       localStorage.setItem('user', JSON.stringify(response.data.user));
 
@@ -70,18 +69,39 @@ export default function LoginPage({ onLogin }) {
             `}
           </style>
           
-          <h1 style={{
-            fontSize: '2.5rem',
-            fontWeight: '700',
-            background: 'linear-gradient(135deg, #a78bfa 0%, #c084fc 50%, #e879f9 100%)',
-            WebkitBackgroundClip: 'text',
-            WebkitTextFillColor: 'transparent',
-            marginBottom: '10px',
-            textAlign: 'center'
+          {/* Logo */}
+          <div style={{
+            display: 'flex',
+            justifyContent: 'center',
+            marginBottom: '30px'
           }}>
-            Task Allocator
-          </h1>
-          
+            <img 
+              src="/minipl-logo.png" 
+              alt="Mini PL" 
+              style={{
+                height: '120px',
+                width: 'auto',
+                maxWidth: '100%'
+              }}
+              onError={(e) => {
+                // Fallback text if logo doesn't load
+                e.target.style.display = 'none';
+                const fallback = document.createElement('h1');
+                fallback.textContent = 'Mini PL';
+                fallback.style.cssText = `
+                  font-size: 2.5rem;
+                  font-weight: 700;
+                  background: linear-gradient(135deg, #a78bfa 0%, #c084fc 50%, #e879f9 100%);
+                  -webkit-background-clip: text;
+                  -webkit-text-fill-color: transparent;
+                  margin: 0;
+                  text-align: center;
+                `;
+                e.target.parentElement.appendChild(fallback);
+              }}
+            />
+          </div>
+
           <p style={{
             color: '#c4b5fd',
             textAlign: 'center',

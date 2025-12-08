@@ -258,44 +258,21 @@ export default function HomePage({ onLogout }) {
         gap: '10px'
       }}>
         <h2>Your Projects</h2>
-        <div style={{ display: 'flex', gap: '10px' }}>
-          <button
-            onClick={() => {
-              fetchProjects();
-              fetchInvitations();
-            }}
-            style={{
-              background: '#10b981',
-              color: 'white',
-              border: 'none',
-              padding: '12px 24px',
-              borderRadius: '8px',
-              cursor: 'pointer',
-              fontSize: '1rem',
-              fontWeight: '600',
-              display: 'flex',
-              alignItems: 'center',
-              gap: '8px'
-            }}
-          >
-            🔄 Refresh
-          </button>
-          <button
-            onClick={() => setShowNewProject(!showNewProject)}
-            style={{
-              background: 'linear-gradient(135deg, #667eea 0%, #764ba2 100%)',
-              color: 'white',
-              border: 'none',
-              padding: '12px 24px',
-              borderRadius: '8px',
-              cursor: 'pointer',
-              fontSize: '1rem',
-              fontWeight: '600'
-            }}
-          >
-            ➕ Add New Project
-          </button>
-        </div>
+        <button
+          onClick={() => setShowNewProject(!showNewProject)}
+          style={{
+            background: 'linear-gradient(135deg, #667eea 0%, #764ba2 100%)',
+            color: 'white',
+            border: 'none',
+            padding: '12px 24px',
+            borderRadius: '8px',
+            cursor: 'pointer',
+            fontSize: '1rem',
+            fontWeight: '600'
+          }}
+        >
+          ➕ Add New Project
+        </button>
       </div>
 
       {showNewProject && (
@@ -604,23 +581,6 @@ function ProjectCard({ project, onDelete, statusColor, onInvite, navigate, onFav
       }}>
         <h4 style={{ margin: 0, fontSize: '1.3rem' }}>{project.title}</h4>
         <div style={{ display: 'flex', gap: '5px' }}>
-          <button
-            onClick={(e) => {
-              e.stopPropagation();
-              onFavorite(project._id);
-            }}
-            style={{
-              background: 'transparent',
-              border: 'none',
-              color: isFavorite ? '#fbbf24' : '#d1d5db',
-              cursor: 'pointer',
-              fontSize: '1.3rem',
-              padding: '4px 8px'
-            }}
-            title={isFavorite ? "Remove from favorites" : "Add to favorites"}
-          >
-            ⭐
-          </button>
           <button
             onClick={(e) => {
               e.stopPropagation();

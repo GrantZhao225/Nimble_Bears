@@ -293,9 +293,6 @@ function ProjectChat({ projectId }) {
     return () => clearInterval(interval);
   }, [projectId]);
 
-  useEffect(() => {
-    scrollToBottom();
-  }, [messages]);
 
   const fetchMessages = async () => {
     try {
@@ -421,9 +418,6 @@ function ProjectChat({ projectId }) {
     setExportingTasks(false);
   };
 
-  const scrollToBottom = () => {
-    messagesEndRef.current?.scrollIntoView({ behavior: 'smooth' });
-  };
 
   return (
     <div style={{ display: 'flex', gap: '20px', minHeight: '600px' }}>
@@ -455,21 +449,6 @@ function ProjectChat({ projectId }) {
               style={{ display: 'none' }} 
               onChange={handleUploadFromChat} 
             />
-            <button
-              onClick={() => fileInputRef.current?.click()}
-              style={{
-                background: 'rgba(255,255,255,0.2)',
-                border: '2px solid white',
-                color: 'white',
-                padding: '8px 12px',
-                borderRadius: '8px',
-                cursor: 'pointer',
-                fontWeight: 600,
-                fontSize: '0.9rem'
-              }}
-            >
-              📎 Upload
-            </button>
             <button
               onClick={handleSummarizeChat}
               disabled={summaryLoading}
@@ -1541,15 +1520,6 @@ function ProjectDMs({ projectId, projectMembers }) {
                   {projectMembers?.find(m => m._id === activeParticipant.id)?.email || ''}
                 </div>
               </div>
-              <div>
-                <input ref={fileInputRef} type="file" style={{ display: 'none' }} onChange={handleUploadAttachment} />
-                <button 
-                  onClick={() => fileInputRef.current?.click()} 
-                  style={{ background: '#eef2ff', border: '1px solid #c7d2fe', padding: '8px 12px', borderRadius: '8px', cursor: 'pointer', fontWeight: '600' }}
-                >
-                  📎 Attach
-                </button>
-              </div>
             </div>
 
             <div style={{ flex: 1, overflowY: 'auto', padding: '12px', background: '#f8fafc', borderRadius: '8px', display: 'flex', flexDirection: 'column', gap: '12px', marginBottom: '15px' }}>
@@ -1592,6 +1562,32 @@ function ProjectDMs({ projectId, projectMembers }) {
             </div>
 
             <form onSubmit={handleSendDM} style={{ display: 'flex', gap: '10px' }}>
+              <input ref={fileInputRef} type="file" style={{ display: 'none' }} onChange={handleUploadAttachment} />
+              <button
+                type="button"
+                onClick={() => fileInputRef.current?.click()}
+                style={{
+                  background: 'rgba(102, 126, 234, 0.1)',
+                  border: '2px solid #667eea',
+                  color: '#667eea',
+                  padding: '12px 16px',
+                  borderRadius: '25px',
+                  cursor: 'pointer',
+                  fontWeight: 600,
+                  fontSize: '0.9rem',
+                  transition: 'all 0.2s'
+                }}
+                onMouseEnter={(e) => {
+                  e.target.style.background = '#667eea';
+                  e.target.style.color = 'white';
+                }}
+                onMouseLeave={(e) => {
+                  e.target.style.background = 'rgba(102, 126, 234, 0.1)';
+                  e.target.style.color = '#667eea';
+                }}
+              >
+                📎
+              </button>
               <input 
                 value={newDM} 
                 onChange={(e) => setNewDM(e.target.value)} 

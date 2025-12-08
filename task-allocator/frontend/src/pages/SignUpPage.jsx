@@ -86,6 +86,25 @@ export default function SignUpPage() {
             `}
           </style>
 
+          {/* Logo */}
+          <div style={{
+            display: 'flex',
+            justifyContent: 'center',
+            marginBottom: '20px'
+          }}>
+            <img 
+              src="/minipl-logo.png" 
+              alt="Mini PL" 
+              style={{
+                height: '80px',
+                width: 'auto'
+              }}
+              onError={(e) => {
+                e.target.style.display = 'none';
+              }}
+            />
+          </div>
+
           <h1 style={{
             fontSize: '2.5rem',
             fontWeight: '700',
@@ -104,7 +123,7 @@ export default function SignUpPage() {
             marginBottom: '30px',
             fontSize: '0.95rem'
           }}>
-            Join Task Allocator and manage your team
+            Join Mini PL and manage your team
           </p>
 
           <form onSubmit={handleSignUp} style={{

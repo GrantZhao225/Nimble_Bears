@@ -9,6 +9,7 @@ export default function FilesPage({ onLogout }) {
   const [selectedProject, setSelectedProject] = useState('');
   const [uploading, setUploading] = useState(false);
   const [previewFile, setPreviewFile] = useState(null);
+  const [previewBlob, setPreviewBlob] = useState(null);
   const fileInputRef = useRef(null);
 
   useEffect(() => {
@@ -50,7 +51,7 @@ export default function FilesPage({ onLogout }) {
     }
   };
 
-  const handleFileUpload = async (e) => {
+  const handleUpload = async (e) => {
     const file = e.target.files?.[0];
     if (!file || !selectedProject) return;
 
@@ -78,8 +79,8 @@ export default function FilesPage({ onLogout }) {
     setUploading(false);
   };
 
-  const handleDelete = async (fileId) => {
-    if (!window.confirm('Delete this file?')) return;
+  const handleDeleteFile = async (fileId) => {
+    if (!fileId || !window.confirm('Delete this file?')) return;
     
     try {
       const token = localStorage.getItem('token');
@@ -94,24 +95,71 @@ export default function FilesPage({ onLogout }) {
     }
   };
 
-  const getFileIcon = (filename) => {
-    if (!filename) return '📄';
-    const ext = filename.split('.').pop()?.toLowerCase();
-    const iconMap = {
-      'pdf': '📕',
-      'doc': '📘', 'docx': '📘',
-      'xls': '📗', 'xlsx': '📗',
-      'ppt': '📙', 'pptx': '📙',
-      'jpg': '🖼️', 'jpeg': '🖼️', 'png': '🖼️', 'gif': '🖼️', 'svg': '🖼️',
-      'mp4': '🎥', 'mov': '🎥', 'avi': '🎥',
-      'mp3': '🎵', 'wav': '🎵',
-      'zip': '📦', 'rar': '📦', '7z': '📦',
-      'txt': '📝',
-      'js': '💻', 'jsx': '💻', 'ts': '💻', 'tsx': '💻',
-      'css': '🎨', 'html': '🌐',
-      'json': '📋'
-    };
-    return iconMap[ext] || '📄';
+  const handlePreviewFile = async (file) => {
+    setPreviewFile(file);
+    
+    try {
+      const token = localStorage.getItem('token');
+      const response = await axios.get(`${API_URL}/files/${file._id}/download`, {
+        headers: { Authorization: `Bearer ${token}` },
+        responseType: 'blob'
+      });
+      
+      const blob = new Blob([response.data], { type: file.mimetype || 'application/octet-stream' });
+      const blobUrl = URL.createObjectURL(blob);
+      setPreviewBlob(blobUrl);
+    } catch (error) {
+      console.error('Error loading file preview:', error);
+      showNotification('❌ Failed to load preview', 'error');
+    }
+  };
+
+  const handleDownloadFile = async (file) => {
+    try {
+      const token = localStorage.getItem('token');
+      const response = await axios.get(`${API_URL}/files/${file._id}/download`, {
+        headers: { Authorization: `Bearer ${token}` },
+        responseType: 'blob'
+      });
+      
+      const blob = new Blob([response.data], { type: file.mimetype || 'application/octet-stream' });
+      const url = URL.createObjectURL(blob);
+      const link = document.createElement('a');
+      link.href = url;
+      link.download = file.name;
+      document.body.appendChild(link);
+      link.click();
+      document.body.removeChild(link);
+      URL.revokeObjectURL(url);
+      
+      showNotification('✅ Download started', 'success');
+    } catch (error) {
+      console.error('Error downloading file:', error);
+      showNotification('❌ Failed to download file', 'error');
+    }
+  };
+
+  const closePreview = () => {
+    if (previewBlob) {
+      URL.revokeObjectURL(previewBlob);
+    }
+    setPreviewFile(null);
+    setPreviewBlob(null);
+  };
+
+  const getFileIcon = (mimetype) => {
+    if (!mimetype) return '📄';
+    if (mimetype.includes('pdf')) return '📕';
+    if (mimetype.includes('word') || mimetype.includes('document')) return '📘';
+    if (mimetype.includes('sheet') || mimetype.includes('excel')) return '📗';
+    if (mimetype.includes('presentation') || mimetype.includes('powerpoint')) return '📙';
+    if (mimetype.includes('image')) return '🖼️';
+    if (mimetype.includes('video')) return '🎥';
+    if (mimetype.includes('audio')) return '🎵';
+    if (mimetype.includes('zip') || mimetype.includes('rar') || mimetype.includes('7z')) return '📦';
+    if (mimetype.includes('text')) return '📝';
+    if (mimetype.includes('json')) return '📋';
+    return '📄';
   };
 
   return (
@@ -170,7 +218,7 @@ export default function FilesPage({ onLogout }) {
           <input
             ref={fileInputRef}
             type="file"
-            onChange={handleFileUpload}
+            onChange={handleUpload}
             disabled={!selectedProject || uploading}
             style={{ display: 'none' }}
           />
@@ -286,7 +334,7 @@ export default function FilesPage({ onLogout }) {
             }}>
               <div style={{ fontSize: '2rem', marginBottom: '5px' }}>📑</div>
               <div style={{ fontSize: '1.8rem', fontWeight: '700', color: '#d97706' }}>
-                {new Set(files.map(f => f.name?.split('.').pop()?.toLowerCase())).size}
+                {new Set(files.map(f => f.mimetype)).size}
               </div>
               <div style={{ color: '#6b7280', fontSize: '0.9rem' }}>File Types</div>
             </div>
@@ -326,12 +374,12 @@ export default function FilesPage({ onLogout }) {
                   marginBottom: '15px'
                 }}>
                   <div style={{ fontSize: '2.5rem' }}>
-                    {getFileIcon(file.name)}
+                    {getFileIcon(file.mimetype)}
                   </div>
                   <button
                     onClick={(e) => {
                       e.stopPropagation();
-                      handleDelete(file._id);
+                      handleDeleteFile(file._id);
                     }}
                     style={{
                       background: 'transparent',
@@ -370,9 +418,6 @@ export default function FilesPage({ onLogout }) {
                   color: '#6b7280'
                 }}>
                   <div>📅 {new Date(file.createdAt).toLocaleDateString()}</div>
-                  {file.uploadedBy && (
-                    <div>👤 {file.uploadedBy.name || 'Unknown'}</div>
-                  )}
                 </div>
 
                 <div style={{
@@ -381,7 +426,7 @@ export default function FilesPage({ onLogout }) {
                   gap: '8px'
                 }}>
                   <button
-                    onClick={() => setPreviewFile(file)}
+                    onClick={() => handlePreviewFile(file)}
                     style={{
                       flex: 1,
                       background: '#3b82f6',
@@ -397,7 +442,7 @@ export default function FilesPage({ onLogout }) {
                     👁️ Preview
                   </button>
                   <button
-                    onClick={() => window.open(file.url, '_blank')}
+                    onClick={() => handleDownloadFile(file)}
                     style={{
                       flex: 1,
                       background: '#10b981',
@@ -422,7 +467,7 @@ export default function FilesPage({ onLogout }) {
       {/* Preview Modal */}
       {previewFile && (
         <div
-          onClick={() => setPreviewFile(null)}
+          onClick={closePreview}
           style={{
             position: 'fixed',
             top: 0,
@@ -459,7 +504,7 @@ export default function FilesPage({ onLogout }) {
             }}>
               <h2 style={{ margin: 0, color: '#1f2937' }}>{previewFile.name}</h2>
               <button
-                onClick={() => setPreviewFile(null)}
+                onClick={closePreview}
                 style={{
                   background: 'transparent',
                   border: 'none',
@@ -473,55 +518,76 @@ export default function FilesPage({ onLogout }) {
               </button>
             </div>
 
-            {/(png|jpe?g|gif|webp|bmp|svg)$/i.test(previewFile.url) ? (
-              <img
-                src={previewFile.url}
-                alt={previewFile.name}
-                style={{
-                  maxWidth: '100%',
-                  maxHeight: '70vh',
-                  objectFit: 'contain',
-                  display: 'block',
-                  margin: '0 auto'
-                }}
-              />
-            ) : /(pdf)$/i.test(previewFile.url) ? (
-              <iframe
-                src={previewFile.url}
-                style={{
-                  width: '80vw',
-                  height: '70vh',
-                  border: 'none',
-                  borderRadius: '8px'
-                }}
-                title={previewFile.name}
-              />
-            ) : (
-              <div style={{
-                padding: '60px 40px',
-                textAlign: 'center',
-                background: '#f9fafb',
-                borderRadius: '8px'
-              }}>
-                <div style={{ fontSize: '4rem', marginBottom: '20px' }}>📄</div>
-                <p style={{ fontSize: '1.2rem', color: '#374151', marginBottom: '20px' }}>
-                  Preview not available for this file type
-                </p>
-                <button
-                  onClick={() => window.open(previewFile.url, '_blank')}
+            {previewBlob ? (
+              previewFile.mimetype?.includes('image') ? (
+                <img
+                  src={previewBlob}
+                  alt={previewFile.name}
                   style={{
-                    background: 'linear-gradient(135deg, #667eea 0%, #764ba2 100%)',
-                    color: 'white',
-                    border: 'none',
-                    padding: '12px 30px',
-                    borderRadius: '8px',
-                    cursor: 'pointer',
-                    fontSize: '1rem',
-                    fontWeight: '600'
+                    maxWidth: '100%',
+                    maxHeight: '70vh',
+                    objectFit: 'contain',
+                    display: 'block',
+                    margin: '0 auto'
                   }}
-                >
-                  ⬇️ Download File
-                </button>
+                />
+              ) : previewFile.mimetype?.includes('pdf') ? (
+                <iframe
+                  src={previewBlob}
+                  style={{
+                    width: '80vw',
+                    height: '70vh',
+                    border: 'none',
+                    borderRadius: '8px'
+                  }}
+                  title={previewFile.name}
+                />
+              ) : (
+                <div style={{
+                  padding: '60px 40px',
+                  textAlign: 'center',
+                  background: '#f9fafb',
+                  borderRadius: '8px'
+                }}>
+                  <div style={{ fontSize: '4rem', marginBottom: '20px' }}>📄</div>
+                  <p style={{ fontSize: '1.2rem', color: '#374151', marginBottom: '20px' }}>
+                    Preview not available for this file type
+                  </p>
+                  <button
+                    onClick={() => handleDownloadFile(previewFile)}
+                    style={{
+                      background: 'linear-gradient(135deg, #667eea 0%, #764ba2 100%)',
+                      color: 'white',
+                      border: 'none',
+                      padding: '12px 30px',
+                      borderRadius: '8px',
+                      cursor: 'pointer',
+                      fontSize: '1rem',
+                      fontWeight: '600'
+                    }}
+                  >
+                    ⬇️ Download File
+                  </button>
+                </div>
+              )
+            ) : (
+              <div style={{ padding: '60px', textAlign: 'center' }}>
+                <div style={{
+                  width: '40px',
+                  height: '40px',
+                  border: '4px solid #e5e7eb',
+                  borderTop: '4px solid #667eea',
+                  borderRadius: '50%',
+                  animation: 'spin 1s linear infinite',
+                  margin: '0 auto 20px'
+                }} />
+                <p>Loading preview...</p>
+                <style>{`
+                  @keyframes spin {
+                    0% { transform: rotate(0deg); }
+                    100% { transform: rotate(360deg); }
+                  }
+                `}</style>
               </div>
             )}
           </div>

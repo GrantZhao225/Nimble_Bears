@@ -131,23 +131,44 @@ export default function Sidebar({ onLogout, isExpanded, setIsExpanded }) {
         flexDirection: 'column',
         overflowY: 'auto'
       }}>
-        {/* Header */}
+        {/* Header with Logo */}
         <div style={{
-          padding: '20px',
+          padding: '25px 20px',
           borderBottom: '1px solid rgba(255,255,255,0.1)',
           display: 'flex',
           alignItems: 'center',
           justifyContent: 'space-between'
         }}>
           <div style={{ 
-            color: 'white', 
-            fontSize: '1.3rem', 
-            fontWeight: '700',
-            background: 'linear-gradient(135deg, #a78bfa 0%, #c084fc 50%, #e879f9 100%)',
-            WebkitBackgroundClip: 'text',
-            WebkitTextFillColor: 'transparent'
+            display: 'flex',
+            alignItems: 'center',
+            justifyContent: 'center',
+            flex: 1
           }}>
-            Task Allocator
+            <img 
+              src="/minipl-logo.png" 
+              alt="Mini PL Logo" 
+              style={{
+                height: '60px',
+                width: 'auto',
+                maxWidth: '180px'
+              }}
+              onError={(e) => {
+                // Fallback if image fails to load
+                e.target.style.display = 'none';
+                const fallback = document.createElement('div');
+                fallback.textContent = 'Mini PL';
+                fallback.style.cssText = `
+                  color: white;
+                  font-size: 1.5rem;
+                  font-weight: 700;
+                  background: linear-gradient(135deg, #a78bfa 0%, #c084fc 50%, #e879f9 100%);
+                  -webkit-background-clip: text;
+                  -webkit-text-fill-color: transparent;
+                `;
+                e.target.parentElement.appendChild(fallback);
+              }}
+            />
           </div>
           <button
             onClick={() => setIsExpanded(false)}
@@ -157,7 +178,8 @@ export default function Sidebar({ onLogout, isExpanded, setIsExpanded }) {
               color: 'white',
               fontSize: '24px',
               cursor: 'pointer',
-              padding: '4px'
+              padding: '4px',
+              marginLeft: '10px'
             }}
           >
             ✕

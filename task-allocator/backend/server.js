@@ -7,16 +7,21 @@ import { GoogleGenerativeAI } from '@google/generative-ai';
 import path from 'path';
 import fs from 'fs';
 import multer from 'multer';
-
+import { fileURLToPath } from 'url';
 
 const app = express();
 const PORT = 5000;
 const JWT_SECRET = 'your-secret-key-change-in-production';
 
+// Get the server's host URL
+const getServerURL = (req) => {
+  return `${req.protocol}://${req.get('host')}`;
+};
+
 // Middleware
 app.use(cors());
-app.use(express.json());
-
+app.use(express.json({ limit: '50mb' }));
+app.use(express.urlencoded({ limit: '50mb', extended: true }));
 
 // MongoDB Connection
 const MONGO_URI = 'mongodb+srv://gz220310_db_user:cUlhh3z821WUvwEL@cluster0.hughmek.mongodb.net/task-allocator?retryWrites=true&w=majority';
@@ -26,9 +31,7 @@ mongoose.connect(MONGO_URI)
   .catch(err => console.error('❌ MongoDB Connection Error:', err));
 
 // Google Gemini AI Setup
-const genAI = new GoogleGenerativeAI('');
-
-import { fileURLToPath } from 'url';
+const genAI = new GoogleGenerativeAI('AIzaSyA3v0yh2tWx0Txt7YpyZGK7CtxFXfA0-bM');
 
 // Get __dirname equivalent in ES modules
 const __filename = fileURLToPath(import.meta.url);
@@ -40,22 +43,34 @@ if (!fs.existsSync(UPLOAD_DIR)) {
   fs.mkdirSync(UPLOAD_DIR, { recursive: true });
 }
 
-// Multer storage
-const storage = multer.diskStorage({
-  destination: (req, file, cb) => cb(null, UPLOAD_DIR),
-  filename: (req, file, cb) => {
-    const unique = Date.now() + '-' + Math.round(Math.random() * 1e9) + path.extname(file.originalname);
-    cb(null, unique);
-  }
-});
-const upload = multer({ storage });
+// Serve uploaded files statically
+app.use('/uploads', express.static(UPLOAD_DIR));
 
-// MongoDB Schemas
+// Updated File Schema to store file data in MongoDB
+const fileSchema = new mongoose.Schema({
+  name: String,
+  filename: String,
+  mimetype: String,
+  size: Number,
+  data: Buffer, // Store file data directly in MongoDB
+  projectId: { type: mongoose.Schema.Types.ObjectId, ref: 'Project' },
+  uploadedBy: { type: mongoose.Schema.Types.ObjectId, ref: 'User' },
+  createdAt: { type: Date, default: Date.now }
+});
+
+// Multer configuration - store in memory instead of disk
+const storage = multer.memoryStorage();
+const upload = multer({ 
+  storage,
+  limits: { fileSize: 50 * 1024 * 1024 } // 50MB limit
+});
+
+// MongoDB Schemas (keeping existing schemas)
 const userSchema = new mongoose.Schema({
   email: { type: String, required: true, unique: true },
   password: { type: String, required: true },
   name: String,
-  avatar: String, // Add this field for profile picture
+  avatar: String,
   organizationId: { type: mongoose.Schema.Types.ObjectId, ref: 'Organization' },
   role: { type: String, enum: ['admin', 'manager', 'member'], default: 'member' },
   availability: [{
@@ -66,7 +81,6 @@ const userSchema = new mongoose.Schema({
   }],
   createdAt: { type: Date, default: Date.now }
 });
-
 
 const organizationSchema = new mongoose.Schema({
   name: { type: String, required: true },
@@ -100,6 +114,7 @@ const taskSchema = new mongoose.Schema({
   status: { type: String, enum: ['Pending', 'In Progress', 'Completed'], default: 'Pending' },
   priority: { type: String, enum: ['Low', 'Medium', 'High'], default: 'Medium' },
   dueDate: Date,
+  discussedInMessageId: String, // Reference to message where task was discussed
   createdAt: { type: Date, default: Date.now }
 });
 
@@ -123,7 +138,8 @@ const chatSummarySchema = new mongoose.Schema({
   extractedTasks: [{
     title: String,
     description: String,
-    assignedTo: String
+    assignedTo: String,
+    messageTimestamp: Date // Track when this was discussed
   }],
   messageCount: Number,
   createdAt: { type: Date, default: Date.now }
@@ -141,29 +157,6 @@ const invitationSchema = new mongoose.Schema({
   createdAt: { type: Date, default: Date.now }
 });
 
-// Models
-const User = mongoose.model('User', userSchema);
-const Organization = mongoose.model('Organization', organizationSchema);
-const Project = mongoose.model('Project', projectSchema);
-const Task = mongoose.model('Task', taskSchema);
-const Message = mongoose.model('Message', messageSchema);
-const ChatSummary = mongoose.model('ChatSummary', chatSummarySchema);
-const Invitation = mongoose.model('Invitation', invitationSchema);
-
-// File schema & model
-const fileSchema = new mongoose.Schema({
-  name: String,
-  filename: String,
-  path: String,
-  url: String,
-  size: Number,
-  projectId: { type: mongoose.Schema.Types.ObjectId, ref: 'Project' },
-  uploadedBy: { type: mongoose.Schema.Types.ObjectId, ref: 'User' },
-  createdAt: { type: Date, default: Date.now }
-});
-const File = mongoose.model('File', fileSchema);
-
-// DirectMessage schema & model
 const directMessageSchema = new mongoose.Schema({
   projectId: { type: mongoose.Schema.Types.ObjectId, ref: 'Project' },
   senderId: { type: mongoose.Schema.Types.ObjectId, ref: 'User' },
@@ -173,10 +166,28 @@ const directMessageSchema = new mongoose.Schema({
   read: { type: Boolean, default: false },
   createdAt: { type: Date, default: Date.now }
 });
-const DirectMessage = mongoose.model('DirectMessage', directMessageSchema);
 
-// Serve uploaded files
-app.use('/uploads', express.static(UPLOAD_DIR));
+const calendarEventSchema = new mongoose.Schema({
+  projectId: { type: mongoose.Schema.Types.ObjectId, ref: 'Project' },
+  userId: { type: mongoose.Schema.Types.ObjectId, ref: 'User' },
+  date: Date,
+  startTime: String,
+  endTime: String,
+  available: Boolean,
+  createdAt: { type: Date, default: Date.now }
+});
+
+// Models
+const User = mongoose.model('User', userSchema);
+const Organization = mongoose.model('Organization', organizationSchema);
+const Project = mongoose.model('Project', projectSchema);
+const Task = mongoose.model('Task', taskSchema);
+const Message = mongoose.model('Message', messageSchema);
+const ChatSummary = mongoose.model('ChatSummary', chatSummarySchema);
+const Invitation = mongoose.model('Invitation', invitationSchema);
+const File = mongoose.model('File', fileSchema);
+const DirectMessage = mongoose.model('DirectMessage', directMessageSchema);
+const CalendarEvent = mongoose.model('CalendarEvent', calendarEventSchema);
 
 // Auth Middleware
 const authenticateToken = (req, res, next) => {
@@ -195,7 +206,6 @@ const authenticateToken = (req, res, next) => {
 // ==================== AUTH ROUTES ====================
 
 app.use('/uploads', express.static(UPLOAD_DIR));
-// Sign Up
 app.post('/api/auth/signup', async (req, res) => {
   try {
     const { email, password, name, organizationName } = req.body;
@@ -207,12 +217,11 @@ app.post('/api/auth/signup', async (req, res) => {
 
     const hashedPassword = await bcrypt.hash(password, 10);
     
-    // Create organization if provided
     let organization = null;
     if (organizationName) {
       organization = new Organization({
         name: organizationName,
-        createdBy: null // Will update after user creation
+        createdBy: null
       });
       await organization.save();
     }
@@ -227,7 +236,6 @@ app.post('/api/auth/signup', async (req, res) => {
 
     await user.save();
 
-    // Update organization with creator
     if (organization) {
       organization.createdBy = user._id;
       organization.members.push(user._id);
@@ -242,7 +250,7 @@ app.post('/api/auth/signup', async (req, res) => {
         id: user._id,
         email: user.email,
         name: user.name,
-        avatar: user.avatar, // Add this
+        avatar: user.avatar,
         organizationId: user.organizationId,
         role: user.role
       }
@@ -253,7 +261,6 @@ app.post('/api/auth/signup', async (req, res) => {
   }
 });
 
-// Login
 app.post('/api/auth/login', async (req, res) => {
   try {
     const { email, password } = req.body;
@@ -276,7 +283,7 @@ app.post('/api/auth/login', async (req, res) => {
         id: user._id,
         email: user.email,
         name: user.name,
-        avatar: user.avatar, // Add this
+        avatar: user.avatar,
         organizationId: user.organizationId,
         role: user.role
       }
@@ -517,8 +524,10 @@ app.put('/api/users/profile', authenticateToken, async (req, res) => {
       return res.status(404).json({ error: 'User not found' });
     }
 
-    if (name) user.name = name;
-    if (avatar !== undefined) user.avatar = avatar;
+    if (name !== undefined) user.name = name;
+    if (avatar !== undefined) {
+      user.avatar = avatar; // Can be base64 string or empty string
+    }
     
     await user.save();
 
@@ -531,6 +540,7 @@ app.put('/api/users/profile', authenticateToken, async (req, res) => {
       role: user.role
     });
   } catch (error) {
+    console.error('Error updating profile:', error);
     res.status(500).json({ error: error.message });
   }
 });
@@ -1106,7 +1116,7 @@ app.post('/api/invitations/:invitationId/reject', authenticateToken, async (req,
 
 // ==================== FILE ROUTES ====================
 
-// Upload a file for a project
+// Upload file - Store in MongoDB
 app.post('/api/files', authenticateToken, upload.single('file'), async (req, res) => {
   try {
     const { projectId } = req.body;
@@ -1122,21 +1132,59 @@ app.post('/api/files', authenticateToken, upload.single('file'), async (req, res
 
     if (!req.file) return res.status(400).json({ error: 'No file uploaded' });
 
-    const file = req.file;
+    // Store file in MongoDB
     const fileDoc = new File({
-      name: file.originalname,
-      filename: file.filename,
-      path: file.path,
-      url: `http://localhost:5000/uploads/${file.filename}`, // Full URL for file access
-      size: file.size,
+      name: req.file.originalname,
+      filename: req.file.originalname,
+      mimetype: req.file.mimetype,
+      size: req.file.size,
+      data: req.file.buffer, // Store the file buffer
       projectId,
       uploadedBy: user._id
     });
 
     await fileDoc.save();
-    res.status(201).json(fileDoc);
+    
+    // Return file info without the data buffer
+    res.status(201).json({
+      _id: fileDoc._id,
+      name: fileDoc.name,
+      filename: fileDoc.filename,
+      mimetype: fileDoc.mimetype,
+      size: fileDoc.size,
+      projectId: fileDoc.projectId,
+      uploadedBy: fileDoc.uploadedBy,
+      createdAt: fileDoc.createdAt
+    });
   } catch (error) {
     console.error('File upload error:', error);
+    res.status(500).json({ error: error.message });
+  }
+});
+
+// Download/view file from MongoDB
+app.get('/api/files/:id/download', authenticateToken, async (req, res) => {
+  try {
+    const fileDoc = await File.findById(req.params.id);
+    if (!fileDoc) return res.status(404).json({ error: 'File not found' });
+
+    const user = await User.findById(req.user.userId);
+    const project = await Project.findById(fileDoc.projectId);
+    if (!project) return res.status(404).json({ error: 'Project not found' });
+
+    const isMember = project.members.some(m => m.toString() === user._id.toString());
+    const isCreator = project.createdBy.toString() === user._id.toString();
+    if (!isMember && !isCreator) return res.status(403).json({ error: 'Access denied' });
+
+    // Set appropriate headers
+    res.setHeader('Content-Type', fileDoc.mimetype || 'application/octet-stream');
+    res.setHeader('Content-Disposition', `inline; filename="${fileDoc.name}"`);
+    res.setHeader('Content-Length', fileDoc.data.length);
+    
+    // Send the file data
+    res.send(fileDoc.data);
+  } catch (error) {
+    console.error('Error downloading file:', error);
     res.status(500).json({ error: error.message });
   }
 });
@@ -1155,7 +1203,10 @@ app.get('/api/files', authenticateToken, async (req, res) => {
     const isCreator = project.createdBy.toString() === user._id.toString();
     if (!isMember && !isCreator) return res.status(403).json({ error: 'Access denied' });
 
-    const files = await File.find({ projectId }).sort({ createdAt: -1 });
+    const files = await File.find({ projectId })
+      .select('-data') // Don't send file data in list
+      .sort({ createdAt: -1 });
+    
     res.json(files);
   } catch (error) {
     console.error('Error fetching files:', error);
@@ -1163,7 +1214,7 @@ app.get('/api/files', authenticateToken, async (req, res) => {
   }
 });
 
-// Delete a file (remove DB record and file from disk)
+// Delete a file
 app.delete('/api/files/:id', authenticateToken, async (req, res) => {
   try {
     const fileId = req.params.id;
@@ -1176,21 +1227,10 @@ app.delete('/api/files/:id', authenticateToken, async (req, res) => {
 
     const isMember = project.members.some(m => m.toString() === user._id.toString());
     const isCreator = project.createdBy.toString() === user._id.toString();
-
-    // Allow deletion if user is project member/creator or the uploader
     const isUploader = fileDoc.uploadedBy && fileDoc.uploadedBy.toString() === user._id.toString();
+    
     if (!isMember && !isCreator && !isUploader) {
       return res.status(403).json({ error: 'Access denied' });
-    }
-
-    // Remove file from disk if exists
-    try {
-      if (fileDoc.path && fs.existsSync(fileDoc.path)) {
-        fs.unlinkSync(fileDoc.path);
-      }
-    } catch (fsErr) {
-      console.warn('Failed to remove file from disk:', fsErr);
-      // continue to remove DB record even if disk cleanup fails
     }
 
     await File.findByIdAndDelete(fileId);

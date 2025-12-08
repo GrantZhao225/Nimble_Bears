@@ -5,10 +5,11 @@ const API_URL = 'http://localhost:5000/api';
 
 export default function ProfilePage({ onLogout }) {
   const [nickname, setNickname] = useState('');
-  const [avatar, setAvatar] = useState(null);
+  const [avatarFile, setAvatarFile] = useState(null);
   const [preview, setPreview] = useState(null);
   const [showSaved, setShowSaved] = useState(false);
   const [loading, setLoading] = useState(false);
+  const [currentAvatar, setCurrentAvatar] = useState(null);
 
   useEffect(() => {
     fetchUserProfile();
@@ -22,7 +23,10 @@ export default function ProfilePage({ onLogout }) {
       });
       
       if (response.data.name) setNickname(response.data.name);
-      if (response.data.avatar) setPreview(response.data.avatar);
+      if (response.data.avatar) {
+        setPreview(response.data.avatar);
+        setCurrentAvatar(response.data.avatar);
+      }
     } catch (error) {
       console.error('Error fetching profile:', error);
     }
@@ -31,10 +35,12 @@ export default function ProfilePage({ onLogout }) {
   const handleFileChange = (e) => {
     const file = e.target.files?.[0];
     if (!file) return;
+    
+    setAvatarFile(file);
+    
     const reader = new FileReader();
     reader.onload = () => {
       setPreview(reader.result);
-      setAvatar(reader.result);
     };
     reader.readAsDataURL(file);
   };
@@ -45,54 +51,66 @@ export default function ProfilePage({ onLogout }) {
 
     try {
       const token = localStorage.getItem('token');
-      const response = await axios.put(`${API_URL}/users/profile`, {
-        name: nickname,
-        avatar: avatar
-      }, {
-        headers: { Authorization: `Bearer ${token}` }
-      });
+      
+      // Function to update profile with the provided data
+      const updateProfile = async (updateData) => {
+        const response = await axios.put(`${API_URL}/users/profile`, updateData, {
+          headers: { Authorization: `Bearer ${token}` }
+        });
 
-      // Update local storage
-      const user = JSON.parse(localStorage.getItem('user') || '{}');
-      user.name = response.data.name;
-      user.avatar = response.data.avatar;
-      localStorage.setItem('user', JSON.stringify(user));
+        // Update local storage
+        const user = JSON.parse(localStorage.getItem('user') || '{}');
+        user.name = response.data.name;
+        user.avatar = response.data.avatar;
+        localStorage.setItem('user', JSON.stringify(user));
 
-      // Trigger events to update UI
-      window.dispatchEvent(new Event('storage'));
-      window.dispatchEvent(new Event('user:updated'));
+        // Trigger events to update UI everywhere
+        window.dispatchEvent(new Event('storage'));
+        window.dispatchEvent(new Event('user:updated'));
 
-      setShowSaved(true);
-      setTimeout(() => setShowSaved(false), 3000);
+        setShowSaved(true);
+        setTimeout(() => setShowSaved(false), 3000);
+        setLoading(false);
+        setAvatarFile(null);
+        setCurrentAvatar(response.data.avatar);
+      };
+
+      // Prepare update data
+      const updateData = {
+        name: nickname
+      };
+      
+      // If a new avatar file was selected, convert to base64
+      if (avatarFile) {
+        const reader = new FileReader();
+        reader.onloadend = async () => {
+          updateData.avatar = reader.result;
+          await updateProfile(updateData);
+        };
+        reader.onerror = () => {
+          console.error('Error reading file');
+          alert('Failed to read image file');
+          setLoading(false);
+        };
+        reader.readAsDataURL(avatarFile);
+      } else if (preview === null && currentAvatar !== null) {
+        // Avatar was removed
+        updateData.avatar = '';
+        await updateProfile(updateData);
+      } else {
+        // Only name changed
+        await updateProfile(updateData);
+      }
     } catch (error) {
       console.error('Error saving profile:', error);
       alert('Failed to save profile. Please try again.');
-    } finally {
       setLoading(false);
     }
   };
 
-  const handleRemoveAvatar = async () => {
-    setAvatar('');
+  const handleRemoveAvatar = () => {
+    setAvatarFile(null);
     setPreview(null);
-    
-    try {
-      const token = localStorage.getItem('token');
-      await axios.put(`${API_URL}/users/profile`, {
-        avatar: ''
-      }, {
-        headers: { Authorization: `Bearer ${token}` }
-      });
-
-      const user = JSON.parse(localStorage.getItem('user') || '{}');
-      delete user.avatar;
-      localStorage.setItem('user', JSON.stringify(user));
-      
-      window.dispatchEvent(new Event('storage'));
-      window.dispatchEvent(new Event('user:updated'));
-    } catch (error) {
-      console.error('Error removing avatar:', error);
-    }
   };
 
   const initials = (nickname || 'U')
@@ -175,7 +193,8 @@ export default function ProfilePage({ onLogout }) {
             borderRadius: 8, 
             border: '1px solid #e5e7eb', 
             marginBottom: 16,
-            fontSize: '1rem'
+            fontSize: '1rem',
+            boxSizing: 'border-box'
           }} 
         />
 
@@ -221,8 +240,8 @@ export default function ProfilePage({ onLogout }) {
           <button 
             type="button" 
             onClick={() => { 
-              fetchUserProfile(); 
-              setAvatar(null); 
+              fetchUserProfile();
+              setAvatarFile(null);
             }} 
             style={{ 
               background: '#e5e7eb', 
