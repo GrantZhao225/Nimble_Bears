@@ -25,20 +25,25 @@ task-allocator/
 - Node.js (v18 or higher)
 - npm or yarn
 - MongoDB database (connection string in backend/server.js)
+- google gemini API key (please make your own and use it with ai.studio) (paste your key in the server.js)
+- mongoDB cluster (please use your own if you want to create your own database, else use mine for demo use)
 
 ### Installation
 
-1. Install root dependencies:
+1. cd into task-allocator folder (change the mongoDB and gemini keys in server.js if needed)
+
+
+2. Install root dependencies:
 ```bash
 npm install
 ```
 
-2. Install frontend dependencies:
+3. Install frontend dependencies:
 ```bash
 npm install --workspace=frontend
 ```
 
-3. Install backend dependencies:
+4. Install backend dependencies:
 ```bash
 npm install --workspace=backend
 ```
@@ -74,7 +79,7 @@ cd backend && npm run start
 ### Development
 
 - **Frontend**: Runs on `http://localhost:5173`
-- **Backend API**: Runs on `http://localhost:5001`
+- **Backend API**: Runs on `http://localhost:5001` (change the port number if your port is being used)
 
 The frontend is configured to proxy API requests to the backend automatically.
 
