@@ -1,7 +1,7 @@
 import React, { useState, useEffect, useRef } from 'react';
 import axios from 'axios';
 
-const API_URL = 'http://localhost:5000/api';
+const API_URL = 'http://localhost:5001/api';
 
 export default function ChatPage({ onLogout }) {
   const [messages, setMessages] = useState([]);
@@ -289,7 +289,7 @@ export default function ChatPage({ onLogout }) {
         </form>
       </div>
 
-      {/* AI Summary Sidebar */}
+      
       {showSummary && (
         <div style={{
           width: '400px',

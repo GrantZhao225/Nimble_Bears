@@ -74,7 +74,7 @@ cd backend && npm run start
 ### Development
 
 - **Frontend**: Runs on `http://localhost:5173`
-- **Backend API**: Runs on `http://localhost:5000`
+- **Backend API**: Runs on `http://localhost:5001`
 
 The frontend is configured to proxy API requests to the backend automatically.
 

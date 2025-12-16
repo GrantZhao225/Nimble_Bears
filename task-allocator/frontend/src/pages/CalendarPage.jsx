@@ -1,7 +1,7 @@
 import React, { useState, useEffect } from 'react';
 import axios from 'axios';
 
-const API_URL = 'http://localhost:5000/api';
+const API_URL = 'http://localhost:5001/api';
 
 export default function CalendarPage({ onLogout }) {
   const [currentDate, setCurrentDate] = useState(new Date());
@@ -87,15 +87,15 @@ export default function CalendarPage({ onLogout }) {
     const existing = getAvailabilityForDate(date);
     if (existing) {
       setTimeSlot({
-        startTime: existing.startTime,
-        endTime: existing.endTime,
+        startTime: existing.startTime || '09:00',
+        endTime: existing.endTime || '17:00',
         available: existing.available
       });
     } else {
       setTimeSlot({
         startTime: '09:00',
         endTime: '17:00',
-        available: true
+        available: true // Default to available
       });
     }
     setShowTimeModal(true);
@@ -260,7 +260,7 @@ export default function CalendarPage({ onLogout }) {
                   cursor: date && !isPast ? 'pointer' : 'default',
                   background: date ? (
                     availability ? (
-                      availability.available ? '#d1fae5' : '#fee2e2'
+                      availability.available ? '#e9d5ff' : '#fee2e2'
                     ) : '#f9fafb'
                   ) : 'transparent',
                   border: isToday ? '2px solid #667eea' : '1px solid #e5e7eb',
@@ -291,16 +291,19 @@ export default function CalendarPage({ onLogout }) {
                     {availability && (
                       <div style={{
                         fontSize: '0.75rem',
-                        color: '#6b7280',
+                        color: availability.available ? '#7c3aed' : '#dc2626',
                         marginTop: '5px',
-                        marginBottom: '5px'
+                        marginBottom: '5px',
+                        fontWeight: '600'
                       }}>
                         {availability.available ? (
                           <>
                             ✓ {availability.startTime} - {availability.endTime}
                           </>
                         ) : (
-                          '✗ Unavailable'
+                          <>
+                            ✗ {availability.startTime} - {availability.endTime}
+                          </>
                         )}
                       </div>
                     )}
@@ -326,80 +329,81 @@ export default function CalendarPage({ onLogout }) {
           })}
         </div>
 
-        {/* Legend */}
-        <div style={{
-          display: 'flex',
-          gap: '20px',
-          marginTop: '25px',
-          padding: '15px',
-          background: '#f9fafb',
-          borderRadius: '8px',
-          flexWrap: 'wrap'
-        }}>
-          <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
-            <div style={{
-              width: '20px',
-              height: '20px',
-              background: '#d1fae5',
-              border: '1px solid #10b981',
-              borderRadius: '4px'
-            }}></div>
-            <span style={{ fontSize: '0.9rem' }}>Available</span>
-          </div>
-          <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
-            <div style={{
-              width: '20px',
-              height: '20px',
-              background: '#fee2e2',
-              border: '1px solid #ef4444',
-              borderRadius: '4px'
-            }}></div>
-            <span style={{ fontSize: '0.9rem' }}>Unavailable</span>
-          </div>
-          <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
-            <div style={{
-              width: '20px',
-              height: '20px',
-              background: '#f9fafb',
-              border: '1px solid #e5e7eb',
-              borderRadius: '4px'
-            }}></div>
-            <span style={{ fontSize: '0.9rem' }}>Not Set</span>
-          </div>
-          <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
-            <div style={{
-              width: '20px',
-              height: '20px',
-              background: '#fef3c7',
-              border: '1px solid #f59e0b',
-              borderRadius: '4px'
-            }}></div>
-            <span style={{ fontSize: '0.9rem' }}>Pending Tasks</span>
-          </div>
-          <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
-            <div style={{
-              width: '20px',
-              height: '20px',
-              background: '#dbeafe',
-              border: '1px solid #3b82f6',
-              borderRadius: '4px'
-            }}></div>
-            <span style={{ fontSize: '0.9rem' }}>In Progress Tasks</span>
-          </div>
-          <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
-            <div style={{
-              width: '20px',
-              height: '20px',
-              background: '#d1fae5',
-              border: '1px solid #10b981',
-              borderRadius: '4px'
-            }}></div>
-            <span style={{ fontSize: '0.9rem' }}>Completed Tasks</span>
-          </div>
+    
+            
+      <div style={{
+        display: 'flex',
+        gap: '20px',
+        marginTop: '25px',
+        padding: '15px',
+        background: '#f9fafb',
+        borderRadius: '8px',
+        flexWrap: 'wrap'
+      }}>
+        <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
+          <div style={{
+            width: '20px',
+            height: '20px',
+            background: '#e9d5ff',
+            border: '1px solid #a855f7',
+            borderRadius: '4px'
+          }}></div>
+          <span style={{ fontSize: '0.9rem' }}>Available</span>
         </div>
+        <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
+        <div style={{
+          width: '20px',
+          height: '20px',
+          background: '#fee2e2',
+          border: '1px solid #ef4444',
+          borderRadius: '4px'
+        }}></div>
+        <span style={{ fontSize: '0.9rem' }}>Unavailable (with times)</span>
+      </div>
+        <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
+          <div style={{
+            width: '20px',
+            height: '20px',
+            background: '#f9fafb',
+            border: '1px solid #e5e7eb',
+            borderRadius: '4px'
+          }}></div>
+          <span style={{ fontSize: '0.9rem' }}>Not Set</span>
+        </div>
+        <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
+          <div style={{
+            width: '20px',
+            height: '20px',
+            background: '#fef3c7',
+            border: '1px solid #f59e0b',
+            borderRadius: '4px'
+          }}></div>
+          <span style={{ fontSize: '0.9rem' }}>Pending Tasks</span>
+        </div>
+        <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
+          <div style={{
+            width: '20px',
+            height: '20px',
+            background: '#dbeafe',
+            border: '1px solid #3b82f6',
+            borderRadius: '4px'
+          }}></div>
+          <span style={{ fontSize: '0.9rem' }}>In Progress Tasks</span>
+        </div>
+        <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
+          <div style={{
+            width: '20px',
+            height: '20px',
+            background: '#d1fae5',
+            border: '1px solid #10b981',
+            borderRadius: '4px'
+          }}></div>
+          <span style={{ fontSize: '0.9rem' }}>Completed Tasks</span>
+        </div>
+      </div> 
       </div>
 
-      {/* Time Slot Modal */}
+      
       {showTimeModal && selectedDate && (
         <div style={{
           position: 'fixed',
@@ -426,60 +430,120 @@ export default function CalendarPage({ onLogout }) {
             </h3>
 
             <div style={{ marginBottom: '20px' }}>
+            
               <label style={{
                 display: 'flex',
                 alignItems: 'center',
                 gap: '10px',
                 marginBottom: '15px',
-                cursor: 'pointer'
+                cursor: 'pointer',
+                padding: '12px',
+                background: timeSlot.available ? '#e9d5ff' : '#f3f4f6',
+                borderRadius: '8px',
+                border: timeSlot.available ? '2px solid #a855f7' : '2px solid #e5e7eb',
+                transition: 'all 0.2s'
               }}>
                 <input
-                  type="checkbox"
-                  checked={timeSlot.available}
-                  onChange={(e) => setTimeSlot({ ...timeSlot, available: e.target.checked })}
-                  style={{ width: '20px', height: '20px' }}
+                  type="radio"
+                  name="availability"
+                  checked={timeSlot.available === true}
+                  onChange={() => setTimeSlot({ ...timeSlot, available: true })}
+                  style={{ width: '20px', height: '20px', cursor: 'pointer' }}
                 />
-                <span style={{ fontSize: '1rem', fontWeight: '600' }}>I am available</span>
-              </label>
-
-              {timeSlot.available && (
-                <div style={{ display: 'grid', gap: '15px' }}>
-                  <div>
-                    <label style={{ display: 'block', marginBottom: '5px', fontWeight: '600' }}>
-                      Start Time
-                    </label>
-                    <input
-                      type="time"
-                      value={timeSlot.startTime}
-                      onChange={(e) => setTimeSlot({ ...timeSlot, startTime: e.target.value })}
-                      style={{
-                        width: '100%',
-                        padding: '10px',
-                        border: '1px solid #ddd',
-                        borderRadius: '8px',
-                        fontSize: '1rem'
-                      }}
-                    />
+                <div>
+                  <div style={{ fontSize: '1rem', fontWeight: '600', color: '#7c3aed' }}>
+                    ✓ I am available
                   </div>
-                  <div>
-                    <label style={{ display: 'block', marginBottom: '5px', fontWeight: '600' }}>
-                      End Time
-                    </label>
-                    <input
-                      type="time"
-                      value={timeSlot.endTime}
-                      onChange={(e) => setTimeSlot({ ...timeSlot, endTime: e.target.value })}
-                      style={{
-                        width: '100%',
-                        padding: '10px',
-                        border: '1px solid #ddd',
-                        borderRadius: '8px',
-                        fontSize: '1rem'
-                      }}
-                    />
+                  <div style={{ fontSize: '0.85rem', color: '#6b7280', marginTop: '2px' }}>
+                    Set your working hours for this day
                   </div>
                 </div>
-              )}
+              </label>
+
+              <label style={{
+                display: 'flex',
+                alignItems: 'center',
+                gap: '10px',
+                marginBottom: '15px',
+                cursor: 'pointer',
+                padding: '12px',
+                background: timeSlot.available === false ? '#fee2e2' : '#f3f4f6',
+                borderRadius: '8px',
+                border: timeSlot.available === false ? '2px solid #ef4444' : '2px solid #e5e7eb',
+                transition: 'all 0.2s'
+              }}>
+                <input
+                  type="radio"
+                  name="availability"
+                  checked={timeSlot.available === false}
+                  onChange={() => setTimeSlot({ ...timeSlot, available: false })}
+                  style={{ width: '20px', height: '20px', cursor: 'pointer' }}
+                />
+                <div>
+                  <div style={{ fontSize: '1rem', fontWeight: '600', color: '#dc2626' }}>
+                    ✗ I am unavailable
+                  </div>
+                  <div style={{ fontSize: '0.85rem', color: '#6b7280', marginTop: '2px' }}>
+                    Set your unavailable hours for this day
+                  </div>
+                </div>
+              </label>
+
+             
+              <div style={{ 
+                display: 'grid', 
+                gap: '15px',
+                padding: '15px',
+                background: timeSlot.available ? '#f0fdf4' : '#fef2f2',
+                borderRadius: '8px',
+                marginTop: '15px',
+                border: timeSlot.available ? '1px solid #bbf7d0' : '1px solid #fecaca'
+              }}>
+                <div>
+                  <label style={{ 
+                    display: 'block', 
+                    marginBottom: '5px', 
+                    fontWeight: '600',
+                    color: timeSlot.available ? '#166534' : '#991b1b'
+                  }}>
+                    {timeSlot.available ? 'Available From' : 'Unavailable From'}
+                  </label>
+                  <input
+                    type="time"
+                    value={timeSlot.startTime}
+                    onChange={(e) => setTimeSlot({ ...timeSlot, startTime: e.target.value })}
+                    style={{
+                      width: '100%',
+                      padding: '10px',
+                      border: '1px solid #ddd',
+                      borderRadius: '8px',
+                      fontSize: '1rem'
+                    }}
+                  />
+                </div>
+                <div>
+                  <label style={{ 
+                    display: 'block', 
+                    marginBottom: '5px', 
+                    fontWeight: '600',
+                    color: timeSlot.available ? '#166534' : '#991b1b'
+                  }}>
+                    {timeSlot.available ? 'Available Until' : 'Unavailable Until'}
+                  </label>
+                  <input
+                    type="time"
+                    value={timeSlot.endTime}
+                    onChange={(e) => setTimeSlot({ ...timeSlot, endTime: e.target.value })}
+                    style={{
+                      width: '100%',
+                      padding: '10px',
+                      border: '1px solid #ddd',
+                      borderRadius: '8px',
+                      fontSize: '1rem'
+                    }}
+                  />
+                </div>
+              </div>
             </div>
 
             <div style={{ display: 'flex', gap: '10px', justifyContent: 'space-between' }}>

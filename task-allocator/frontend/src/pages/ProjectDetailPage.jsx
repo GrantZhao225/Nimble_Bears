@@ -2,7 +2,7 @@ import React, { useState, useEffect, useRef } from 'react';
 import { useParams, useNavigate } from 'react-router-dom';
 import axios from 'axios';
 
-const API_URL = 'http://localhost:5000/api';
+const API_URL = 'http://localhost:5001/api';
 
 export default function ProjectDetailPage({ onLogout }) {
   const { projectId } = useParams();
@@ -106,7 +106,7 @@ export default function ProjectDetailPage({ onLogout }) {
 
   return (
     <div style={{ padding: '20px', minHeight: '100vh' }}>
-      {/* Top Bar */}
+      
       <div style={{
         display: 'flex',
         justifyContent: 'space-between',
@@ -182,7 +182,7 @@ export default function ProjectDetailPage({ onLogout }) {
         )}
       </div>
 
-      {/* Header */}
+     
       <div style={{
         background: 'linear-gradient(135deg, #667eea 0%, #764ba2 100%)',
         padding: '30px',
@@ -224,7 +224,7 @@ export default function ProjectDetailPage({ onLogout }) {
         </div>
       </div>
 
-      {/* Tabs */}
+      
       <div style={{
         display: 'flex',
         gap: '10px',
@@ -232,7 +232,7 @@ export default function ProjectDetailPage({ onLogout }) {
         borderBottom: '2px solid #e5e7eb',
         overflowX: 'auto'
       }}>
-        {['chat', 'tasks', 'files', 'dms', 'calendar'].map(tab => (
+        {['chat', 'tasks', 'files', 'members', 'dms', 'calendar'].map(tab => (
           <button
             key={tab}
             onClick={() => setActiveTab(tab)}
@@ -252,17 +252,18 @@ export default function ProjectDetailPage({ onLogout }) {
             {tab === 'chat' && '💬 Chat'}
             {tab === 'tasks' && '✅ Tasks'}
             {tab === 'files' && '📁 Files'}
+            {tab === 'members' && '👥 Members'}
             {tab === 'dms' && '💌 DMs'}
             {tab === 'calendar' && '📅 Calendar'}
           </button>
         ))}
       </div>
-
-      {/* Tab Content */}
+      
       <div style={{ minHeight: '500px' }}>
         {activeTab === 'chat' && <ProjectChat projectId={projectId} />}
         {activeTab === 'tasks' && <ProjectTasks projectId={projectId} projectMembers={project.members} />}
         {activeTab === 'files' && <ProjectFiles projectId={projectId} />}
+        {activeTab === 'members' && <ProjectMembers projectId={projectId} project={project} userRole={userRole} onProjectUpdate={fetchProject} />}
         {activeTab === 'dms' && <ProjectDMs projectId={projectId} projectMembers={project.members} />}
         {activeTab === 'calendar' && <ProjectCalendar projectId={projectId} />}
       </div>
@@ -421,7 +422,7 @@ function ProjectChat({ projectId }) {
 
   return (
     <div style={{ display: 'flex', gap: '20px', minHeight: '600px' }}>
-      {/* Chat Area */}
+     
       <div style={{
         flex: 1,
         display: 'flex',
@@ -719,7 +720,7 @@ function ProjectChat({ projectId }) {
         </form>
       </div>
 
-      {/* AI Sidebar */}
+     
       {showSummary && (
         <div style={{
           width: '400px',
@@ -859,7 +860,7 @@ function ProjectChat({ projectId }) {
             </>
           ) : null}
 
-          {/* Tech Spec Section */}
+          
           {techSpecLoading && (
             <div style={{ textAlign: 'center', padding: '20px' }}>
               <div style={{
@@ -1464,7 +1465,7 @@ function ProjectDMs({ projectId, projectMembers }) {
 
   return (
     <div style={{ display: 'flex', gap: '20px', minHeight: '600px' }}>
-      {/* Conversations List */}
+      
       <div style={{ width: '280px', background: 'white', borderRadius: '12px', padding: '20px', boxShadow: '0 2px 8px rgba(0,0,0,0.1)' }}>
         <h4 style={{ marginTop: 0 }}>Conversations</h4>
         {loadingConvos ? (
@@ -1505,7 +1506,7 @@ function ProjectDMs({ projectId, projectMembers }) {
         )}
       </div>
 
-      {/* Messages Area */}
+     
       <div style={{ flex: 1, background: 'white', borderRadius: '12px', padding: '20px', display: 'flex', flexDirection: 'column', minHeight: '400px', boxShadow: '0 2px 8px rgba(0,0,0,0.1)' }}>
         {!activeParticipant ? (
           <div style={{ flex: 1, display: 'flex', alignItems: 'center', justifyContent: 'center', color: '#6b7280' }}>
@@ -1622,6 +1623,468 @@ function ProjectDMs({ projectId, projectMembers }) {
           </>
         )}
       </div>
+    </div>
+  );
+}
+// Project Members Component
+function ProjectMembers({ projectId, project, userRole, onProjectUpdate }) {
+  const [members, setMembers] = useState([]);
+  const [memberAvailabilities, setMemberAvailabilities] = useState({});
+  const [selectedMember, setSelectedMember] = useState(null);
+  const [loading, setLoading] = useState(true);
+
+  useEffect(() => {
+    fetchMembers();
+  }, [projectId]);
+
+  const fetchMembers = async () => {
+    try {
+      const token = localStorage.getItem('token');
+      
+      // Fetch all project members with their details
+      const memberPromises = project.members.map(async (member) => {
+        try {
+          const availResponse = await axios.get(
+            `${API_URL}/users/${member._id}/availability`,
+            { headers: { Authorization: `Bearer ${token}` } }
+          );
+          
+          return {
+            ...member,
+            availability: availResponse.data || []
+          };
+        } catch (error) {
+          console.error(`Error fetching availability for ${member.name}:`, error);
+          return {
+            ...member,
+            availability: []
+          };
+        }
+      });
+
+      const membersWithAvailability = await Promise.all(memberPromises);
+      setMembers(membersWithAvailability);
+      setLoading(false);
+    } catch (error) {
+      console.error('Error fetching members:', error);
+      setLoading(false);
+    }
+  };
+
+  const handleRemoveMember = async (memberId) => {
+    if (!window.confirm('Remove this member from the project?')) return;
+    
+    try {
+      const token = localStorage.getItem('token');
+      const updatedMembers = project.members.filter(m => m._id !== memberId).map(m => m._id);
+      
+      await axios.put(`${API_URL}/projects/${projectId}`, {
+        members: updatedMembers
+      }, {
+        headers: { Authorization: `Bearer ${token}` }
+      });
+      
+      fetchMembers();
+      onProjectUpdate();
+      alert('Member removed successfully');
+    } catch (error) {
+      console.error('Error removing member:', error);
+      alert('Failed to remove member');
+    }
+  };
+
+  const getDaysInMonth = (date) => {
+    const year = date.getFullYear();
+    const month = date.getMonth();
+    const firstDay = new Date(year, month, 1);
+    const lastDay = new Date(year, month + 1, 0);
+    const daysInMonth = lastDay.getDate();
+    const startingDayOfWeek = firstDay.getDay();
+
+    const days = [];
+    for (let i = 0; i < startingDayOfWeek; i++) {
+      days.push(null);
+    }
+    for (let i = 1; i <= daysInMonth; i++) {
+      days.push(new Date(year, month, i));
+    }
+    return days;
+  };
+
+  const getAvailabilityForDate = (availability, date) => {
+    if (!date || !availability) return null;
+    const dateStr = date.toISOString().split('T')[0];
+    return availability.find(a => 
+      new Date(a.date).toISOString().split('T')[0] === dateStr
+    );
+  };
+
+  const [currentDate, setCurrentDate] = useState(new Date());
+  const monthNames = ['January', 'February', 'March', 'April', 'May', 'June',
+    'July', 'August', 'September', 'October', 'November', 'December'];
+  const dayNames = ['Sun', 'Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat'];
+
+  if (loading) {
+    return (
+      <div style={{ textAlign: 'center', padding: '60px', color: '#6b7280' }}>
+        Loading members...
+      </div>
+    );
+  }
+
+  return (
+    <div style={{ background: 'white', padding: '25px', borderRadius: '12px', boxShadow: '0 2px 8px rgba(0,0,0,0.1)' }}>
+      <h2 style={{ marginTop: 0, marginBottom: '25px' }}>👥 Project Members</h2>
+
+      
+      <div style={{
+        display: 'grid',
+        gridTemplateColumns: 'repeat(auto-fill, minmax(280px, 1fr))',
+        gap: '20px',
+        marginBottom: '40px'
+      }}>
+        {members.map(member => {
+          const availableCount = member.availability?.filter(a => a.available).length || 0;
+          const unavailableCount = member.availability?.filter(a => !a.available).length || 0;
+          
+          return (
+            <div
+              key={member._id}
+              style={{
+                background: '#f9fafb',
+                border: '2px solid #e5e7eb',
+                borderRadius: '12px',
+                padding: '20px',
+                transition: 'all 0.2s',
+                cursor: 'pointer'
+              }}
+              onClick={() => setSelectedMember(selectedMember?._id === member._id ? null : member)}
+              onMouseEnter={(e) => {
+                e.currentTarget.style.transform = 'translateY(-2px)';
+                e.currentTarget.style.boxShadow = '0 4px 12px rgba(0,0,0,0.1)';
+                e.currentTarget.style.borderColor = '#667eea';
+              }}
+              onMouseLeave={(e) => {
+                e.currentTarget.style.transform = 'translateY(0)';
+                e.currentTarget.style.boxShadow = 'none';
+                e.currentTarget.style.borderColor = '#e5e7eb';
+              }}
+            >
+              <div style={{ display: 'flex', alignItems: 'center', gap: '15px', marginBottom: '15px' }}>
+                <div style={{
+                  width: '60px',
+                  height: '60px',
+                  borderRadius: '50%',
+                  background: 'linear-gradient(135deg, #667eea 0%, #764ba2 100%)',
+                  display: 'flex',
+                  alignItems: 'center',
+                  justifyContent: 'center',
+                  color: 'white',
+                  fontSize: '1.5rem',
+                  fontWeight: 'bold',
+                  flexShrink: 0
+                }}>
+                  {member.name?.charAt(0).toUpperCase() || 'U'}
+                </div>
+                <div style={{ flex: 1, minWidth: 0 }}>
+                  <div style={{
+                    fontWeight: '700',
+                    fontSize: '1.1rem',
+                    color: '#1f2937',
+                    marginBottom: '4px',
+                    overflow: 'hidden',
+                    textOverflow: 'ellipsis',
+                    whiteSpace: 'nowrap'
+                  }}>
+                    {member.name}
+                  </div>
+                  <div style={{
+                    fontSize: '0.85rem',
+                    color: '#6b7280',
+                    overflow: 'hidden',
+                    textOverflow: 'ellipsis',
+                    whiteSpace: 'nowrap'
+                  }}>
+                    {member.email}
+                  </div>
+                </div>
+              </div>
+
+             
+              <div style={{ marginBottom: '15px' }}>
+                <span style={{
+                  background: project.createdBy._id === member._id ? '#dbeafe' : '#f3f4f6',
+                  color: project.createdBy._id === member._id ? '#1e40af' : '#374151',
+                  padding: '4px 12px',
+                  borderRadius: '12px',
+                  fontSize: '0.85rem',
+                  fontWeight: '600'
+                }}>
+                  {project.createdBy._id === member._id ? '👑 Creator' : '👤 Member'}
+                </span>
+              </div>
+
+              
+              <div style={{
+                display: 'grid',
+                gridTemplateColumns: '1fr 1fr',
+                gap: '10px',
+                marginBottom: '15px'
+              }}>
+                <div style={{
+                  background: '#e9d5ff',
+                  padding: '10px',
+                  borderRadius: '8px',
+                  textAlign: 'center'
+                }}>
+                  <div style={{ fontSize: '1.5rem', fontWeight: '700', color: '#7c3aed' }}>
+                    {availableCount}
+                  </div>
+                  <div style={{ fontSize: '0.75rem', color: '#6b21a8' }}>Available</div>
+                </div>
+                <div style={{
+                  background: '#fee2e2',
+                  padding: '10px',
+                  borderRadius: '8px',
+                  textAlign: 'center'
+                }}>
+                  <div style={{ fontSize: '1.5rem', fontWeight: '700', color: '#dc2626' }}>
+                    {unavailableCount}
+                  </div>
+                  <div style={{ fontSize: '0.75rem', color: '#991b1b' }}>Unavailable</div>
+                </div>
+              </div>
+
+              
+              {userRole === 'Creator' && project.createdBy._id !== member._id && (
+                <button
+                  onClick={(e) => {
+                    e.stopPropagation();
+                    handleRemoveMember(member._id);
+                  }}
+                  style={{
+                    width: '100%',
+                    background: '#fee2e2',
+                    color: '#ef4444',
+                    border: 'none',
+                    padding: '8px',
+                    borderRadius: '6px',
+                    cursor: 'pointer',
+                    fontWeight: '600',
+                    fontSize: '0.9rem',
+                    transition: 'background 0.2s'
+                  }}
+                  onMouseEnter={(e) => {
+                    e.target.style.background = '#fecaca';
+                  }}
+                  onMouseLeave={(e) => {
+                    e.target.style.background = '#fee2e2';
+                  }}
+                >
+                  Remove from Project
+                </button>
+              )}
+            </div>
+          );
+        })}
+      </div>
+
+    
+      {selectedMember && (
+        <div style={{
+          background: '#f9fafb',
+          padding: '25px',
+          borderRadius: '12px',
+          border: '2px solid #667eea'
+        }}>
+          <div style={{
+            display: 'flex',
+            justifyContent: 'space-between',
+            alignItems: 'center',
+            marginBottom: '25px'
+          }}>
+            <h3 style={{ margin: 0 }}>
+              📅 {selectedMember.name}'s Availability Calendar
+            </h3>
+            <button
+              onClick={() => setSelectedMember(null)}
+              style={{
+                background: 'transparent',
+                border: 'none',
+                fontSize: '24px',
+                cursor: 'pointer',
+                color: '#6b7280'
+              }}
+            >
+              ✕
+            </button>
+          </div>
+
+      
+          <div style={{
+            display: 'flex',
+            justifyContent: 'space-between',
+            alignItems: 'center',
+            marginBottom: '20px'
+          }}>
+            <button
+              onClick={() => setCurrentDate(new Date(currentDate.getFullYear(), currentDate.getMonth() - 1, 1))}
+              style={{
+                background: '#667eea',
+                color: 'white',
+                border: 'none',
+                padding: '8px 16px',
+                borderRadius: '6px',
+                cursor: 'pointer',
+                fontWeight: '600'
+              }}
+            >
+              ← Previous
+            </button>
+            <h4 style={{ margin: 0 }}>
+              {monthNames[currentDate.getMonth()]} {currentDate.getFullYear()}
+            </h4>
+            <button
+              onClick={() => setCurrentDate(new Date(currentDate.getFullYear(), currentDate.getMonth() + 1, 1))}
+              style={{
+                background: '#667eea',
+                color: 'white',
+                border: 'none',
+                padding: '8px 16px',
+                borderRadius: '6px',
+                cursor: 'pointer',
+                fontWeight: '600'
+              }}
+            >
+              Next →
+            </button>
+          </div>
+
+          
+          <div style={{
+            display: 'grid',
+            gridTemplateColumns: 'repeat(7, 1fr)',
+            gap: '8px',
+            marginBottom: '8px'
+          }}>
+            {dayNames.map(day => (
+              <div key={day} style={{
+                textAlign: 'center',
+                fontWeight: '600',
+                color: '#6b7280',
+                padding: '8px',
+                fontSize: '0.9rem'
+              }}>
+                {day}
+              </div>
+            ))}
+          </div>
+
+          
+          <div style={{
+            display: 'grid',
+            gridTemplateColumns: 'repeat(7, 1fr)',
+            gap: '8px'
+          }}>
+            {getDaysInMonth(currentDate).map((date, index) => {
+              const availability = date ? getAvailabilityForDate(selectedMember.availability, date) : null;
+              const isToday = date && date.toDateString() === new Date().toDateString();
+
+              return (
+                <div
+                  key={index}
+                  style={{
+                    minHeight: '80px',
+                    padding: '8px',
+                    borderRadius: '6px',
+                    background: date ? (
+                      availability ? (
+                        availability.available ? '#e9d5ff' : '#fee2e2'
+                      ) : 'white'
+                    ) : 'transparent',
+                    border: isToday ? '2px solid #667eea' : '1px solid #e5e7eb',
+                    display: 'flex',
+                    flexDirection: 'column'
+                  }}
+                >
+                  {date && (
+                    <>
+                      <div style={{
+                        fontWeight: '600',
+                        color: '#1f2937',
+                        marginBottom: '4px'
+                      }}>
+                        {date.getDate()}
+                      </div>
+                      {availability && (
+                      <div style={{
+                        fontSize: '0.7rem',
+                        color: availability.available ? '#7c3aed' : '#dc2626',
+                        marginTop: 'auto',
+                        fontWeight: '600'
+                      }}>
+                        {availability.available ? (
+                          <>
+                            ✓ {availability.startTime} - {availability.endTime}
+                          </>
+                        ) : (
+                          <>
+                            ✗ {availability.startTime} - {availability.endTime}
+                          </>
+                        )}
+                      </div>
+                    )}
+                    </>
+                  )}
+                </div>
+              );
+            })}
+          </div>
+
+    
+          <div style={{
+            display: 'flex',
+            gap: '20px',
+            marginTop: '20px',
+            padding: '15px',
+            background: 'white',
+            borderRadius: '8px',
+            justifyContent: 'center',
+            flexWrap: 'wrap'
+          }}>
+            <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
+              <div style={{
+                width: '20px',
+                height: '20px',
+                background: '#e9d5ff',
+                border: '1px solid #a855f7',
+                borderRadius: '4px'
+              }}></div>
+              <span style={{ fontSize: '0.85rem' }}>Available</span>
+            </div>
+            <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
+            <div style={{
+              width: '20px',
+              height: '20px',
+              background: '#fee2e2',
+              border: '1px solid #ef4444',
+              borderRadius: '4px'
+            }}></div>
+            <span style={{ fontSize: '0.85rem' }}>Unavailable (with times)</span>
+          </div>
+            <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
+              <div style={{
+                width: '20px',
+                height: '20px',
+                background: 'white',
+                border: '1px solid #e5e7eb',
+                borderRadius: '4px'
+              }}></div>
+              <span style={{ fontSize: '0.85rem' }}>Not Set</span>
+            </div>
+          </div>
+        </div>
+      )}
     </div>
   );
 }
@@ -1755,7 +2218,7 @@ function ProjectCalendar({ projectId }) {
         })}
       </div>
 
-      {/* Task Details Modal */}
+      
       {selectedTask && (
         <div onClick={() => setSelectedTask(null)} style={{
           position: 'fixed', top: 0, left: 0, right: 0, bottom: 0, background: 'rgba(0,0,0,0.5)', display: 'flex', alignItems: 'center', justifyContent: 'center', zIndex: 1000

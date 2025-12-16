@@ -2,7 +2,7 @@ import React, { useState, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
 import axios from 'axios';
 
-const API_URL = 'http://localhost:5000/api';
+const API_URL = 'http://localhost:5001/api';
 
 export default function HomePage({ onLogout }) {
   const navigate = useNavigate();
@@ -39,7 +39,7 @@ export default function HomePage({ onLogout }) {
     const interval = setInterval(() => {
       fetchProjects();
       fetchInvitations();
-    }, 5000);
+    }, 3000);
     return () => clearInterval(interval);
   }, []);
 

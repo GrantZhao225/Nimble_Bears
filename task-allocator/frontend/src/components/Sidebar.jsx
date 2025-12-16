@@ -2,7 +2,7 @@ import React, { useState, useEffect } from "react";
 import { Link, useNavigate, useLocation } from "react-router-dom";
 import axios from 'axios';
 
-const API_URL = 'http://localhost:5000/api';
+const API_URL = 'http://localhost:5001/api';
 
 export default function Sidebar({ onLogout, isExpanded, setIsExpanded }) {
   const [showTasks, setShowTasks] = useState(false);
@@ -88,7 +88,7 @@ export default function Sidebar({ onLogout, isExpanded, setIsExpanded }) {
 
   return (
     <>
-      {/* Hamburger Menu Button */}
+      
       {!isExpanded && (
         <button
           onClick={() => setIsExpanded(true)}
@@ -116,7 +116,7 @@ export default function Sidebar({ onLogout, isExpanded, setIsExpanded }) {
         </button>
       )}
 
-      {/* Sidebar */}
+    
       <div style={{
         position: 'fixed',
         left: isExpanded ? 0 : '-280px',
@@ -131,7 +131,7 @@ export default function Sidebar({ onLogout, isExpanded, setIsExpanded }) {
         flexDirection: 'column',
         overflowY: 'auto'
       }}>
-        {/* Header with Logo */}
+      
         <div style={{
           padding: '25px 20px',
           borderBottom: '1px solid rgba(255,255,255,0.1)',
@@ -186,14 +186,14 @@ export default function Sidebar({ onLogout, isExpanded, setIsExpanded }) {
           </button>
         </div>
 
-        {/* Navigation */}
+       
         <nav style={{ flex: 1, padding: '20px 0' }}>
           <NavLink to="/" icon="🏠" label="Home" isActive={isActive('/')} />
           <NavLink to="/profile" icon="👤" label="Profile" isActive={isActive('/profile')} />
           <NavLink to="/calendar" icon="📅" label="Calendar" isActive={isActive('/calendar')} />
           <NavLink to="/files" icon="📁" label="Files" isActive={isActive('/files')} />
 
-          {/* Favorites Section */}
+          
           {favoriteProjects.length > 0 && (
             <>
               <div style={{
@@ -224,7 +224,7 @@ export default function Sidebar({ onLogout, isExpanded, setIsExpanded }) {
             </>
           )}
 
-          {/* Projects Section */}
+       
           {nonFavoriteProjects.length > 0 && (
             <>
               <div style={{
@@ -255,7 +255,7 @@ export default function Sidebar({ onLogout, isExpanded, setIsExpanded }) {
             </>
           )}
 
-          {/* Task Tracker with Projects */}
+      
           <div style={{ marginTop: '10px' }}>
             <div
               onClick={() => setShowTasks(!showTasks)}
@@ -397,7 +397,7 @@ export default function Sidebar({ onLogout, isExpanded, setIsExpanded }) {
           </div>
         </nav>
 
-        {/* Logout Button */}
+       
         <div style={{
           padding: '20px',
           borderTop: '1px solid rgba(255,255,255,0.1)'

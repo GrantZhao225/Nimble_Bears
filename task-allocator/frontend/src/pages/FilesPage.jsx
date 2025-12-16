@@ -1,7 +1,7 @@
 import React, { useState, useEffect, useRef } from 'react';
 import axios from 'axios';
 
-const API_URL = 'http://localhost:5000/api';
+const API_URL = 'http://localhost:5001/api';
 
 export default function FilesPage({ onLogout }) {
   const [files, setFiles] = useState([]);
@@ -182,7 +182,7 @@ export default function FilesPage({ onLogout }) {
         </p>
       </div>
 
-      {/* Project Selector and Upload */}
+      
       <div style={{
         display: 'flex',
         justifyContent: 'space-between',
@@ -290,7 +290,7 @@ export default function FilesPage({ onLogout }) {
         </div>
       ) : (
         <>
-          {/* File Stats */}
+       
           <div style={{
             display: 'grid',
             gridTemplateColumns: 'repeat(auto-fit, minmax(200px, 1fr))',
@@ -340,7 +340,7 @@ export default function FilesPage({ onLogout }) {
             </div>
           </div>
 
-          {/* Files Grid */}
+          
           <div style={{
             display: 'grid',
             gridTemplateColumns: 'repeat(auto-fill, minmax(280px, 1fr))',
@@ -464,7 +464,7 @@ export default function FilesPage({ onLogout }) {
         </>
       )}
 
-      {/* Preview Modal */}
+      
       {previewFile && (
         <div
           onClick={closePreview}

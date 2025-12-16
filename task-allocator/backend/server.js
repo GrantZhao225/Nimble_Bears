@@ -10,8 +10,8 @@ import multer from 'multer';
 import { fileURLToPath } from 'url';
 
 const app = express();
-const PORT = 5000;
-const JWT_SECRET = 'your-secret-key-change-in-production';
+const PORT = 5001;
+const JWT_SECRET = 'your-secret-key-change-in-production'; //prob not needed but meh
 
 // Get the server's host URL
 const getServerURL = (req) => {
@@ -25,13 +25,13 @@ app.use(express.urlencoded({ limit: '50mb', extended: true }));
 
 // MongoDB Connection
 const MONGO_URI = 'mongodb+srv://gz220310_db_user:cUlhh3z821WUvwEL@cluster0.hughmek.mongodb.net/task-allocator?retryWrites=true&w=majority';
-
+// insert your own mongodb cluster, but i'll leave this for demonstration purposes
 mongoose.connect(MONGO_URI)
   .then(() => console.log('✅ MongoDB Connected'))
   .catch(err => console.error('❌ MongoDB Connection Error:', err));
 
-// Google Gemini AI Setup
-const genAI = new GoogleGenerativeAI('AIzaSyA3v0yh2tWx0Txt7YpyZGK7CtxFXfA0-bM');
+// Google Gemini AI Setup + please use your own google gemini key 
+const genAI = new GoogleGenerativeAI('');
 
 // Get __dirname equivalent in ES modules
 const __filename = fileURLToPath(import.meta.url);
@@ -114,7 +114,7 @@ const taskSchema = new mongoose.Schema({
   status: { type: String, enum: ['Pending', 'In Progress', 'Completed'], default: 'Pending' },
   priority: { type: String, enum: ['Low', 'Medium', 'High'], default: 'Medium' },
   dueDate: Date,
-  discussedInMessageId: String, // Reference to message where task was discussed
+  discussedInMessageId: String, 
   createdAt: { type: Date, default: Date.now }
 });
 
@@ -139,7 +139,7 @@ const chatSummarySchema = new mongoose.Schema({
     title: String,
     description: String,
     assignedTo: String,
-    messageTimestamp: Date // Track when this was discussed
+    messageTimestamp: Date 
   }],
   messageCount: Number,
   createdAt: { type: Date, default: Date.now }
@@ -203,7 +203,6 @@ const authenticateToken = (req, res, next) => {
   });
 };
 
-// ==================== AUTH ROUTES ====================
 
 app.use('/uploads', express.static(UPLOAD_DIR));
 app.post('/api/auth/signup', async (req, res) => {
@@ -293,7 +292,6 @@ app.post('/api/auth/login', async (req, res) => {
   }
 });
 
-// ==================== PROJECT ROUTES ====================
 
 // Get all projects user is a member of
 app.get('/api/projects', authenticateToken, async (req, res) => {
@@ -350,7 +348,7 @@ app.post('/api/projects', authenticateToken, async (req, res) => {
       ...req.body,
       organizationId: user.organizationId,
       createdBy: user._id,
-      members: [user._id] // Creator is automatically a member
+      members: [user._id] 
     });
     await project.save();
     const populatedProject = await Project.findById(project._id)
@@ -386,7 +384,6 @@ app.delete('/api/projects/:id', authenticateToken, async (req, res) => {
   }
 });
 
-// ==================== TASK ROUTES ====================
 
 // Get tasks
 app.get('/api/tasks', authenticateToken, async (req, res) => {
@@ -526,7 +523,7 @@ app.put('/api/users/profile', authenticateToken, async (req, res) => {
 
     if (name !== undefined) user.name = name;
     if (avatar !== undefined) {
-      user.avatar = avatar; // Can be base64 string or empty string
+      user.avatar = avatar; 
     }
     
     await user.save();
@@ -558,7 +555,6 @@ app.get('/api/users/me', authenticateToken, async (req, res) => {
   }
 });
 
-// ==================== CHAT ROUTES ====================
 
 // Get messages for a project
 app.get('/api/messages', authenticateToken, async (req, res) => {
@@ -810,18 +806,16 @@ app.post('/api/chat/tech-spec', authenticateToken, async (req, res) => {
 
     const model = genAI.getGenerativeModel({ model: 'gemini-2.5-flash' });
 
-    const prompt = `You are a senior software engineer.
-From the following project team chat, infer the product requirements and translate them into a concrete, implementation-oriented technical specification.
+    const prompt = `You are a specialist in the domain.
+From the following project team chat, can you extract tasks and provide technical specifications for each task? Infer the product requirements and translate them into a concrete, atomic, implementation-oriented technical specification.
 
-Focus on:
-- Context and goals
-- Functional requirements
-- Data model / APIs
-- Integration points
-- Non-functional requirements (performance, reliability, security, etc.)
-- Open questions / ambiguities
+Follow these guidelines for atomising functional requirements:
+- write complete, simple sentences in active voice
+- define terms clearly and use them consistently
+- group-related material into sections
+- express all requirements using "must" or "shall" 
 
-Write clear markdown with headings.
+Write clear text with headings. Don't put it in markdown format.
 
 Chat conversation:
 ${chatText}
@@ -911,8 +905,6 @@ app.post('/api/chat/export-tasks', authenticateToken, async (req, res) => {
 });
 
 
-// ==================== ORGANIZATION & TEAM ROUTES ====================
-
 // Get organization details
 app.get('/api/organization', authenticateToken, async (req, res) => {
   try {
@@ -970,7 +962,6 @@ app.put('/api/users/availability', authenticateToken, async (req, res) => {
   }
 });
 
-// ==================== INVITATION ROUTES ====================
 
 // Send invitation to project
 app.post('/api/projects/:projectId/invitations', authenticateToken, async (req, res) => {
@@ -1114,7 +1105,6 @@ app.post('/api/invitations/:invitationId/reject', authenticateToken, async (req,
   }
 });
 
-// ==================== FILE ROUTES ====================
 
 // Upload file - Store in MongoDB
 app.post('/api/files', authenticateToken, upload.single('file'), async (req, res) => {
@@ -1262,7 +1252,6 @@ app.post('/api/dms', authenticateToken, async (req, res) => {
 
     const populated = await DirectMessage.findById(dm._id).populate('senderId', 'name email').populate('recipientId', 'name email').populate('fileId');
 
-    // Optionally: emit socket event if socket integration exists
     res.status(201).json(populated);
   } catch (error) {
     console.error('Error sending DM:', error);
@@ -1331,7 +1320,7 @@ app.get('/api/dms/conversations', authenticateToken, async (req, res) => {
       }
     }
 
-    // Also include project members with no messages yet (optional)
+    // Also include project members with no messages yet
     for (const memberId of project.members.map(m => m.toString())) {
       if (memberId === user._id.toString()) continue;
       if (!map.has(memberId)) {

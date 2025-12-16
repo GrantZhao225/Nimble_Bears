@@ -3,7 +3,7 @@ import { Link } from 'react-router-dom';
 import axios from 'axios';
 import AnimatedBackground from "../components/AnimatedBackground";
 
-const API_URL = 'http://localhost:5000/api';
+const API_URL = 'http://localhost:5001/api';
 
 export default function LoginPage({ onLogin }) {
   const [email, setEmail] = useState('');
@@ -69,7 +69,7 @@ export default function LoginPage({ onLogin }) {
             `}
           </style>
           
-          {/* Logo */}
+         
           <div style={{
             display: 'flex',
             justifyContent: 'center',
